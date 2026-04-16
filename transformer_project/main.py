@@ -26,13 +26,19 @@ from visualization import (
 )
 
 # Colab 持久保存到 Google Drive
+RESULTS_DIR = "results"
 try:
     from google.colab import drive
-    drive.mount('/content/drive')
-    RESULTS_DIR = "/content/drive/MyDrive/transformer_project/results"
+    try:
+        drive.mount('/content/drive', force_remount=False)
+        RESULTS_DIR = "/content/drive/MyDrive/transformer_project/results"
+        print("✓ Google Drive 已挂载")
+    except Exception as mount_error:
+        print(f"⚠ Google Drive 挂载失败: {mount_error}")
+        print("  将使用本地 results 文件夹保存结果")
 except ImportError:
     # 本地运行时使用相对路径
-    RESULTS_DIR = "results"
+    pass
 
 
 def save_predictions(true_values, predictions, output_dir=RESULTS_DIR, filename="predictions.csv"):
