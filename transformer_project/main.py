@@ -29,10 +29,15 @@ from visualization import (
 RESULTS_DIR = "results"
 try:
     from google.colab import drive
+    import IPython
     try:
-        drive.mount('/content/drive', force_remount=False)
-        RESULTS_DIR = "/content/drive/MyDrive/transformer_project/results"
-        print("✓ Google Drive 已挂载")
+        # 检查是否在交互式环境中
+        if IPython.get_ipython() is not None:
+            drive.mount('/content/drive', force_remount=False)
+            RESULTS_DIR = "/content/drive/MyDrive/transformer_project/results"
+            print("✓ Google Drive 已挂载")
+        else:
+            print("⚠ 非交互式环境，跳过 Google Drive 挂载")
     except Exception as mount_error:
         print(f"⚠ Google Drive 挂载失败: {mount_error}")
         print("  将使用本地 results 文件夹保存结果")
