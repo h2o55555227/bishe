@@ -1,0 +1,49 @@
+from tensorflow import keras
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+
+
+class EpochProgressCallback(keras.callbacks.Callback):
+    def on_epoch_begin(self, epoch, logs=None):
+        print(f"[训练进度] 开始第 {epoch + 1} 个 epoch")
+
+    def on_epoch_end(self, epoch, logs=None):
+        val_loss = logs.get("val_loss") if logs else None
+        loss = logs.get("loss") if logs else None
+        if val_loss is not None:
+            print(
+                f"[训练进度] 完成第 {epoch + 1} 个 epoch - loss: {loss:.4f}, val_loss: {val_loss:.4f}"
+            )
+        else:
+            print(f"[训练进度] 完成第 {epoch + 1} 个 epoch")
+
+
+def train_model(
+    model,
+    dataset_train,
+    dataset_val,
+    epochs=10,
+    checkpoint_path="model_checkpoint.weights.h5",
+    learning_rate=0.001,
+):
+    model.compile(
+        optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
+        loss="mse",
+    )
+
+    es_callback = EarlyStopping(monitor="val_loss", patience=5)
+    modelckpt_callback = ModelCheckpoint(
+        filepath=checkpoint_path,
+        monitor="val_loss",
+        save_best_only=True,
+        save_weights_only=True,
+    )
+    progress_callback = EpochProgressCallback()
+
+    history = model.fit(
+        dataset_train,
+        epochs=epochs,
+        validation_data=dataset_val,
+        callbacks=[es_callback, modelckpt_callback, progress_callback],
+        verbose=0,
+    )
+    return history
