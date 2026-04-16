@@ -25,27 +25,26 @@ from visualization import (
     visualize_loss,
 )
 
-# Colab 持久保存到 Google Drive
+# 结果保存目录
 RESULTS_DIR = "results"
 
-# 尝试挂载 Google Drive，但即使失败也不影响程序运行
-try:
-    # 检查是否在 Colab 环境中
-    import sys
-    if 'google.colab' in sys.modules:
-        print("检测到 Colab 环境，尝试挂载 Google Drive...")
-        # 直接尝试挂载，不检查 IPython 环境
-        from google.colab import drive
-        drive.mount('/content/drive', force_remount=False)
-        RESULTS_DIR = "/content/drive/MyDrive/transformer_project/results"
-        print("✓ Google Drive 已成功挂载")
-    else:
-        # 非 Colab 环境，使用本地路径
-        print("非 Colab 环境，使用本地路径")
-except Exception as e:
-    # 捕获任何异常，确保程序能继续运行
-    print(f"⚠ Google Drive 挂载失败: {e}")
-    print("将使用本地 results 文件夹保存结果")
+# 手动挂载 Google Drive 说明：
+# 在 Colab 中运行时，请先在一个单独的代码单元格中执行以下命令：
+# 
+# from google.colab import drive
+# drive.mount('/content/drive')
+# 
+# 然后在本脚本中取消注释下面的代码行：
+# RESULTS_DIR = "/content/drive/MyDrive/transformer_project/results"
+
+# 检查是否在 Colab 环境中
+import sys
+if 'google.colab' in sys.modules:
+    print("检测到 Colab 环境")
+    print("请确保已手动挂载 Google Drive")
+    print("如果已挂载，请在脚本中设置 RESULTS_DIR 为 Drive 路径")
+else:
+    print("非 Colab 环境，使用本地路径")
 
 print(f"结果将保存到: {RESULTS_DIR}")
 
