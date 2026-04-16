@@ -168,6 +168,12 @@ def main():
 
     save_predictions(all_true_values, all_predictions)
     save_metrics(metrics)
+    
+    # 保存完整模型
+    model_save_path = os.path.join(RESULTS_DIR, "transformer_model.h5")
+    model.save(model_save_path)
+    print(f"完整模型已保存至: {model_save_path}")
+    
     print("所有结果已保存。执行完成！")
 
 
