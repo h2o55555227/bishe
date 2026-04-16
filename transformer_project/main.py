@@ -30,29 +30,24 @@ RESULTS_DIR = "results"
 
 # 尝试挂载 Google Drive，但即使失败也不影响程序运行
 try:
-    # 首先检查是否在 Colab 环境中
+    # 检查是否在 Colab 环境中
     import sys
     if 'google.colab' in sys.modules:
-        try:
-            from google.colab import drive
-            import IPython
-            # 检查是否在交互式环境中
-            if IPython.get_ipython() is not None:
-                drive.mount('/content/drive', force_remount=False)
-                RESULTS_DIR = "/content/drive/MyDrive/transformer_project/results"
-                print("✓ Google Drive 已挂载")
-            else:
-                print("⚠ 非交互式环境，跳过 Google Drive 挂载")
-        except Exception as mount_error:
-            print(f"⚠ Google Drive 挂载失败: {mount_error}")
-            print("  将使用本地 results 文件夹保存结果")
+        print("检测到 Colab 环境，尝试挂载 Google Drive...")
+        # 直接尝试挂载，不检查 IPython 环境
+        from google.colab import drive
+        drive.mount('/content/drive', force_remount=False)
+        RESULTS_DIR = "/content/drive/MyDrive/transformer_project/results"
+        print("✓ Google Drive 已成功挂载")
     else:
         # 非 Colab 环境，使用本地路径
-        pass
+        print("非 Colab 环境，使用本地路径")
 except Exception as e:
     # 捕获任何异常，确保程序能继续运行
-    print(f"⚠ 初始化环境时出错: {e}")
-    print("  将使用本地 results 文件夹保存结果")
+    print(f"⚠ Google Drive 挂载失败: {e}")
+    print("将使用本地 results 文件夹保存结果")
+
+print(f"结果将保存到: {RESULTS_DIR}")
 
 
 def save_predictions(true_values, predictions, output_dir=RESULTS_DIR, filename="predictions.csv"):
