@@ -35,7 +35,7 @@ RESULTS_DIR = "results"
 # drive.mount('/content/drive')
 # 
 # 然后在本脚本中取消注释下面的代码行：
-# RESULTS_DIR = "/content/drive/MyDrive/transformer_project/results"
+RESULTS_DIR = "/content/drive/MyDrive/transformer_project/results"
 
 # 检查是否在 Colab 环境中
 import sys
