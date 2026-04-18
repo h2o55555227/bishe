@@ -22,11 +22,6 @@ from evaluate import compute_metrics
 from model import build_transformer_model
 from predict import predict_all
 from train import train_model
-from visualization import (
-    show_comparison_visualization,
-    show_processed_visualization,
-    show_raw_visualization,
-)
 
 DRIVE_ROOT = Path("/content/drive/MyDrive")
 PROJECT_NAME = "transformer_project"
@@ -40,9 +35,14 @@ CONFIG = {
     "future": 72,
     "step": 6,
     "batch_size": 256,
-    "epochs": 10,
-    "learning_rate": 0.001,
-    "activation": "relu",
+    "epochs": 50,
+    "learning_rate": 0.0005,
+    "activation": "gelu",
+    "projection_dim": 128,
+    "num_heads": 8,
+    "ff_dim": 256,
+    "num_transformer_blocks": 2,
+    "early_stopping_patience": 8,
     "checkpoint_name": "best_model.weights.h5",
     "full_model_name": "transformer_model.keras",
 }
@@ -176,37 +176,13 @@ def main():
     raw_features = get_selected_features(df)
     print(f"Feature shape: {raw_features.shape}")
 
-    print("[3/9] Saving raw-data visualization...")
-    show_raw_visualization(
-        df,
-        selected_features,
-        selected_titles,
-        colors,
-        output_dir=str(RESULTS_DIR),
-    )
-
     train_split = int(CONFIG["train_ratio"] * len(df))
-    print("[4/9] Normalizing and splitting data...")
+    print("[3/7] Normalizing and splitting data...")
     normalized_features, train_mean, train_std = normalize_features(raw_features, train_split)
     train_data, val_data = split_features(normalized_features, train_split)
     print(f"Train split index: {train_split}")
 
-    show_processed_visualization(
-        normalized_features,
-        selected_titles,
-        colors,
-        output_dir=str(RESULTS_DIR),
-    )
-    show_comparison_visualization(
-        raw_features,
-        normalized_features,
-        selected_features,
-        selected_titles,
-        colors,
-        output_dir=str(RESULTS_DIR),
-    )
-
-    print("[5/9] Building time-series datasets...")
+    print("[4/7] Building time-series datasets...")
     dataset_train, dataset_val, sequence_length = build_timeseries_datasets(
         train_data,
         val_data,
@@ -221,14 +197,18 @@ def main():
     print(f"Train batches: {dataset_batches(dataset_train)}")
     print(f"Validation batches: {dataset_batches(dataset_val)}")
 
-    print("[6/9] Building model...")
+    print("[5/7] Building model...")
     model = build_transformer_model(
         (sequence_length, len(selected_features)),
         activation=CONFIG["activation"],
+        projection_dim=CONFIG["projection_dim"],
+        num_heads=CONFIG["num_heads"],
+        ff_dim=CONFIG["ff_dim"],
+        num_transformer_blocks=CONFIG["num_transformer_blocks"],
     )
     save_model_summary(model, RESULTS_DIR / "model_summary.txt")
 
-    print("[7/9] Training model...")
+    print("[6/7] Training model...")
     checkpoint_path = RESULTS_DIR / CONFIG["checkpoint_name"]
     history = train_model(
         model,
@@ -237,15 +217,14 @@ def main():
         epochs=CONFIG["epochs"],
         checkpoint_path=str(checkpoint_path),
         learning_rate=CONFIG["learning_rate"],
+        early_stopping_patience=CONFIG["early_stopping_patience"],
     )
     save_loss_plot(history, RESULTS_DIR / "loss_curve.png")
 
-    print("[8/9] Evaluating model...")
+    print("[7/7] Evaluating model and saving artifacts...")
     all_true_values, all_predictions = predict_all(model, dataset_val)
     metrics = compute_metrics(all_true_values, all_predictions)
     print(json.dumps(to_serializable_dict(metrics), indent=2, ensure_ascii=False))
-
-    print("[9/9] Saving artifacts...")
     save_predictions_csv(all_true_values, all_predictions, RESULTS_DIR / "predictions.csv")
     save_json(metrics, RESULTS_DIR / "metrics.json")
     save_json(history.history, RESULTS_DIR / "history.json")
