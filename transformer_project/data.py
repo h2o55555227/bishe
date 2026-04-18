@@ -9,6 +9,7 @@ URI = "https://storage.googleapis.com/tensorflow/tf-keras-datasets/jena_climate_
 ZIP_FILENAME = "jena_climate_2009_2016.csv.zip"
 CSV_FILENAME = "jena_climate_2009_2016.csv"
 DATE_TIME_KEY = "Date Time"
+TARGET_FEATURE = "T (degC)"
 
 feature_keys = [
     "p (mbar)",
@@ -47,6 +48,7 @@ titles = [
 selected_feature_indices = [0, 1, 5, 7, 8, 10, 11]
 selected_features = [feature_keys[i] for i in selected_feature_indices]
 selected_titles = [titles[i] for i in selected_feature_indices]
+time_feature_names = ["hour_sin", "hour_cos", "day_sin", "day_cos"]
 colors = [
     "blue",
     "orange",
@@ -79,9 +81,19 @@ def download_and_load_data(data_dir="."):
 
 def get_selected_features(df):
     features = df[selected_features].copy()
-    features.index = pd.to_datetime(
+    date_time = pd.to_datetime(
         df[DATE_TIME_KEY], format="%d.%m.%Y %H:%M:%S", errors="raise"
     )
+    features.index = date_time
+
+    hour = date_time.dt.hour + date_time.dt.minute / 60.0
+    day_of_year = date_time.dt.dayofyear - 1
+
+    features["hour_sin"] = np.sin(2 * np.pi * hour / 24.0)
+    features["hour_cos"] = np.cos(2 * np.pi * hour / 24.0)
+    features["day_sin"] = np.sin(2 * np.pi * day_of_year / 365.0)
+    features["day_cos"] = np.cos(2 * np.pi * day_of_year / 365.0)
+
     return features
 
 
@@ -112,9 +124,10 @@ def build_timeseries_datasets(
     start = past + future
     end = start + train_split
     sequence_length = int(past / step)
+    target_index = features.columns.get_loc(TARGET_FEATURE)
 
     x_train = train_data.iloc[:, :].values
-    y_train = features.iloc[start:end, [1]].values
+    y_train = features.iloc[start:end, [target_index]].values
 
     dataset_train = keras.preprocessing.timeseries_dataset_from_array(
         x_train,
@@ -128,7 +141,7 @@ def build_timeseries_datasets(
     label_start = train_split + past + future
 
     x_val = val_data.iloc[:x_end, :].values
-    y_val = features.iloc[label_start:, [1]].values
+    y_val = features.iloc[label_start:, [target_index]].values
 
     dataset_val = keras.preprocessing.timeseries_dataset_from_array(
         x_val,

@@ -9,12 +9,11 @@ import tensorflow as tf
 
 from data import (
     DATE_TIME_KEY,
-    colors,
     download_and_load_data,
     get_selected_features,
     normalize_features,
     selected_features,
-    selected_titles,
+    time_feature_names,
     split_features,
     build_timeseries_datasets,
 )
@@ -36,12 +35,14 @@ CONFIG = {
     "step": 6,
     "batch_size": 256,
     "epochs": 50,
-    "learning_rate": 0.0005,
+    "learning_rate": 0.0003,
+    "loss": "mae",
     "activation": "gelu",
-    "projection_dim": 128,
-    "num_heads": 8,
-    "ff_dim": 256,
+    "projection_dim": 64,
+    "num_heads": 4,
+    "ff_dim": 128,
     "num_transformer_blocks": 2,
+    "dropout_rate": 0.1,
     "early_stopping_patience": 8,
     "checkpoint_name": "best_model.weights.h5",
     "full_model_name": "transformer_model.keras",
@@ -166,13 +167,14 @@ def main():
     ensure_drive_mounted()
 
     print("=== Transformer training on Colab ===")
-    print("[1/9] Loading data...")
+    print("[1/7] Loading data...")
     df = download_and_load_data(data_dir=str(DATA_DIR))
     print(f"Data shape: {df.shape}")
     print(f"Time range: {df[DATE_TIME_KEY].iloc[0]} -> {df[DATE_TIME_KEY].iloc[-1]}")
     print(f"Selected features: {selected_features}")
+    print(f"Added time features: {time_feature_names}")
 
-    print("[2/9] Selecting features...")
+    print("[2/7] Selecting features...")
     raw_features = get_selected_features(df)
     print(f"Feature shape: {raw_features.shape}")
 
@@ -205,6 +207,7 @@ def main():
         num_heads=CONFIG["num_heads"],
         ff_dim=CONFIG["ff_dim"],
         num_transformer_blocks=CONFIG["num_transformer_blocks"],
+        dropout_rate=CONFIG["dropout_rate"],
     )
     save_model_summary(model, RESULTS_DIR / "model_summary.txt")
 
@@ -218,6 +221,7 @@ def main():
         checkpoint_path=str(checkpoint_path),
         learning_rate=CONFIG["learning_rate"],
         early_stopping_patience=CONFIG["early_stopping_patience"],
+        loss=CONFIG["loss"],
     )
     save_loss_plot(history, RESULTS_DIR / "loss_curve.png")
 
@@ -236,6 +240,8 @@ def main():
             "train_split": train_split,
             "sequence_length": sequence_length,
             "selected_features": selected_features,
+            "time_features": time_feature_names,
+            "model_input_features": list(raw_features.columns),
         },
         RESULTS_DIR / "run_config.json",
     )

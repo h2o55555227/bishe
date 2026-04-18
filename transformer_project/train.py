@@ -39,12 +39,13 @@ def train_model(
     dataset_val,
     epochs=50,
     checkpoint_path="model_checkpoint.weights.h5",
-    learning_rate=0.0005,
+    learning_rate=0.0003,
     early_stopping_patience=8,
+    loss="mae",
 ):
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
-        loss="mse",
+        loss=loss,
     )
 
     es_callback = EarlyStopping(
