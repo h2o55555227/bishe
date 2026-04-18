@@ -99,9 +99,20 @@ def get_selected_features(df):
 
 def normalize_features(features, train_split):
     training_slice = features.iloc[:train_split]
+
     mean = training_slice.mean(axis=0)
     std = training_slice.std(axis=0)
+
+    # ✅ 防止除0（关键！！！）
+    std = std.replace(0, 1e-6)
+    std = std.fillna(1e-6)
+
     normalized = (features - mean) / std
+
+    # ✅ 再保险（防 NaN / Inf）
+    normalized = normalized.replace([np.inf, -np.inf], 0)
+    normalized = normalized.fillna(0)
+
     return normalized, mean, std
 
 
