@@ -9,6 +9,7 @@ import tensorflow as tf
 
 from data import (
     DATE_TIME_KEY,
+    TARGET_FEATURE,
     download_and_load_data,
     get_selected_features,
     normalize_features,
@@ -122,7 +123,9 @@ def save_loss_plot(history, path):
 
 
 
-def save_prediction_examples(model, dataset_val, path, num_examples=5):
+def save_prediction_examples(
+    model, dataset_val, path, num_examples=5, target_feature_index=1
+):
     fig, axes = plt.subplots(num_examples, 1, figsize=(10, 3 * num_examples))
     if num_examples == 1:
         axes = [axes]
@@ -131,7 +134,7 @@ def save_prediction_examples(model, dataset_val, path, num_examples=5):
     for sample_x, sample_y in dataset_val.unbatch().take(num_examples):
         prediction = model.predict(tf.expand_dims(sample_x, axis=0), verbose=0)
         ax = axes[saved]
-        history_series = sample_x[:, 1].numpy()
+        history_series = sample_x[:, target_feature_index].numpy()
         true_value = float(sample_y.numpy().squeeze())
         pred_value = float(prediction[0].squeeze())
 
@@ -176,6 +179,8 @@ def main():
 
     print("[2/7] Selecting features...")
     raw_features = get_selected_features(df)
+    input_feature_count = raw_features.shape[1]
+    target_feature_index = raw_features.columns.get_loc(TARGET_FEATURE)
     print(f"Feature shape: {raw_features.shape}")
 
     train_split = int(CONFIG["train_ratio"] * len(df))
@@ -201,7 +206,7 @@ def main():
 
     print("[5/7] Building model...")
     model = build_transformer_model(
-        (sequence_length, len(selected_features)),
+        (sequence_length, input_feature_count),
         activation=CONFIG["activation"],
         projection_dim=CONFIG["projection_dim"],
         num_heads=CONFIG["num_heads"],
@@ -241,6 +246,7 @@ def main():
             "sequence_length": sequence_length,
             "selected_features": selected_features,
             "time_features": time_feature_names,
+            "input_feature_count": input_feature_count,
             "model_input_features": list(raw_features.columns),
         },
         RESULTS_DIR / "run_config.json",
@@ -258,7 +264,12 @@ def main():
     model.save(full_model_path)
     print(f"Saved full model: {full_model_path}")
 
-    save_prediction_examples(model, dataset_val, RESULTS_DIR / "prediction_examples.png")
+    save_prediction_examples(
+        model,
+        dataset_val,
+        RESULTS_DIR / "prediction_examples.png",
+        target_feature_index=target_feature_index,
+    )
 
     print("Done. All outputs are saved to Google Drive.")
 
