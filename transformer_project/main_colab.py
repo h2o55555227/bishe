@@ -6,7 +6,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from google.colab import drive
 
 from data import (
     DATE_TIME_KEY,
@@ -50,10 +49,15 @@ CONFIG = {
 
 
 def ensure_drive_mounted():
-    drive.mount("/content/drive", force_remount=False)
+    if not DRIVE_ROOT.exists():
+        raise RuntimeError(
+            "Google Drive is not mounted. Please run "
+            "`from google.colab import drive; drive.mount('/content/drive')` "
+            "in a Colab cell before executing this script."
+        )
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    print(f"Drive mounted. Results will be saved to: {RESULTS_DIR}")
+    print(f"Google Drive detected. Results will be saved to: {RESULTS_DIR}")
 
 
 
