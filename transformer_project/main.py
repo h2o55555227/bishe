@@ -23,57 +23,48 @@ from visualization import (
     show_plot,
     show_raw_visualization,
     visualize_loss,
+    visualize_validation_predictions,
 )
 
-# 结果保存目录
-RESULTS_DIR = "results"
 
-# 手动挂载 Google Drive 说明：
-# 在 Colab 中运行时，请先在一个单独的代码单元格中执行以下命令：
-# 
-# from google.colab import drive
-# drive.mount('/content/drive')
-# 
-# 然后在本脚本中取消注释下面的代码行：
-RESULTS_DIR = "/content/drive/MyDrive/transformer_project/results"
-
-# 检查是否在 Colab 环境中
-import sys
-if 'google.colab' in sys.modules:
-    print("检测到 Colab 环境")
-    print("请确保已手动挂载 Google Drive")
-    print("如果已挂载，请在脚本中设置 RESULTS_DIR 为 Drive 路径")
-else:
-    print("非 Colab 环境，使用本地路径")
-
-print(f"结果将保存到: {RESULTS_DIR}")
-
-
-def save_predictions(true_values, predictions, output_dir=RESULTS_DIR, filename="predictions.csv"):
+def save_predictions(true_values, predictions, output_dir="results", filename="predictions.csv"):
+    """保存预测结果到 CSV 文件"""
+    import csv
+    import numpy as np
+    
     os.makedirs(output_dir, exist_ok=True)
     path = os.path.join(output_dir, filename)
-
+    
+    true_values = np.array(true_values)
+    predictions = np.array(predictions)
+    
     with open(path, mode="w", newline="", encoding="utf-8") as csv_file:
         writer = csv.writer(csv_file)
         writer.writerow(["真实值", "预测值"])
         writer.writerows(zip(true_values, predictions))
-
+    
     print(f"预测结果已保存至 {path}")
     return path
 
 
-def save_metrics(metrics, output_dir=RESULTS_DIR, filename="metrics.json"):
+def save_metrics(metrics, output_dir="results", filename="metrics.json"):
+    """保存评估指标到 JSON 文件"""
+    import json
+    
     os.makedirs(output_dir, exist_ok=True)
     path = os.path.join(output_dir, filename)
-
+    
     with open(path, mode="w", encoding="utf-8") as json_file:
         json.dump(metrics, json_file, indent=4, ensure_ascii=False)
-
+    
     print(f"指标已保存至 {path}")
     return path
 
 
 def main():
+    # 定义结果保存目录
+    RESULTS_DIR = "results"
+    
     print("=== Transformer 时间序列预测项目 ===")
     print("[1/8] 开始下载并加载数据...")
     df = download_and_load_data(data_dir=".")
@@ -122,29 +113,35 @@ def main():
     print(f"验证数据集大小: {len(dataset_val)} 批次")
     print()
 
-    print("[5/8] 开始创建模型...")
-    model = build_transformer_model((sequence_length, len(selected_features)), activation="relu")
-    print("模型构建完成。")
-    print("模型摘要:")
-    model.summary()
-    print()
-
-    print("[6/8] 开始训练模型...")
-    history = train_model(
-        model,
-        dataset_train,
-        dataset_val,
-        epochs=10,
-        checkpoint_path="model_checkpoint.weights.h5",
-        learning_rate=0.001,
-    )
-    print("训练完成。")
-    print(f"最终训练损失: {history.history['loss'][-1]:.4f}")
-    print(f"最终验证损失: {history.history['val_loss'][-1]:.4f}")
-    print()
-
-    print("[6.1/8] 可视化损失曲线...")
-    visualize_loss(history, "Transformer + ReLU 损失曲线")
+    print("[5/8] 开始加载模型...")
+    # 指定模型路径
+    model_path = r"E:\毕设\transformer实验\results\run_20260418_134954\transformer_model.keras"
+    
+    # 检查在不同操作系统下的路径
+    if not os.path.exists(model_path):
+        # 尝试在Colab/Linux环境下的路径
+        colab_model_path = os.path.join(RESULTS_DIR, "transformer_model.keras")
+        if os.path.exists(colab_model_path):
+            model_path = colab_model_path
+        else:
+            # 如果都不存在，尝试使用h5格式
+            model_path_h5 = os.path.join(RESULTS_DIR, "transformer_model.h5")
+            if os.path.exists(model_path_h5):
+                model_path = model_path_h5
+    
+    if os.path.exists(model_path):
+        from tensorflow import keras
+        model = keras.models.load_model(model_path)
+        print(f"模型加载完成: {model_path}")
+        print("模型摘要:")
+        model.summary()
+    else:
+        # 如果模型文件不存在，则创建新模型
+        print(f"警告: 模型文件 {model_path} 不存在，将创建新模型...")
+        model = build_transformer_model((sequence_length, len(selected_features)), activation="relu")
+        print("模型构建完成。")
+        print("模型摘要:")
+        model.summary()
     print()
 
     print("[7/8] 预测样例并可视化...")
@@ -161,18 +158,19 @@ def main():
     print(f"验证 RMSE: {metrics['rmse']:.4f}")
     print(f"验证 MAPE: {metrics['mape']:.4f}")
     print(f"验证 SMAPE: {metrics['smape']:.4f}")
-    print(f"验证 R²: {metrics['r2']:.4f}")
+    print(f"验证 R2: {metrics['r2']:.4f}")
     print(f"真实值均值: {metrics['true_mean']:.4f}, 标准差: {metrics['true_std']:.4f}")
     print(f"预测值均值: {metrics['pred_mean']:.4f}, 标准差: {metrics['pred_std']:.4f}")
     print()
-
-    save_predictions(all_true_values, all_predictions)
-    save_metrics(metrics)
     
-    # 保存完整模型
-    model_save_path = os.path.join(RESULTS_DIR, "transformer_model.h5")
-    model.save(model_save_path)
-    print(f"完整模型已保存至: {model_save_path}")
+    print("[8.1/8] 开始可视化验证集预测结果...")
+    visualize_validation_predictions(all_true_values, all_predictions, output_dir=RESULTS_DIR)
+    print("可视化完成。")
+    print()
+
+    save_predictions(all_true_values, all_predictions, output_dir=RESULTS_DIR)
+    save_metrics(metrics, output_dir=RESULTS_DIR)
+    
     
     print("所有结果已保存。执行完成！")
 

@@ -46,6 +46,6 @@ def build_transformer_model(
 
     x = layers.GlobalAveragePooling1D()(x)
     x = layers.Dropout(dropout_rate)(x)
-    outputs = layers.Dense(1)(x)
+    outputs = layers.Dense(1, activation=None)(x)
 
     return keras.Model(inputs, outputs)

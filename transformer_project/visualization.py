@@ -45,12 +45,19 @@ def show_raw_visualization(
 
 
 def show_processed_visualization(features_df, selected_titles, colors, output_dir="results", filename="processed_data_visualization.png"):
-    fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(15, 12), dpi=80)
-
+    fig, axes = plt.subplots(nrows=4, ncols=3, figsize=(18, 16), dpi=80)
+    
+    # 为时间特征添加标题
+    time_titles = ["小时正弦", "小时余弦", "日正弦", "日余弦"]
+    all_titles = selected_titles + time_titles
+    
     for i, column in enumerate(features_df.columns):
-        ax = axes[i // 2, i % 2]
+        ax = axes[i // 3, i % 3]
         ax.plot(features_df[column].values, color=colors[i % len(colors)])
-        ax.set_title(f"{selected_titles[i]}（归一化）")
+        if i < len(all_titles):
+            ax.set_title(f"{all_titles[i]}（归一化）")
+        else:
+            ax.set_title(f"{column}（归一化）")
         ax.set_xlabel("时间步")
         ax.set_ylabel("归一化值")
 
@@ -66,11 +73,19 @@ def show_processed_visualization(features_df, selected_titles, colors, output_di
 def show_comparison_visualization(raw_df, normalized_df, selected_features, selected_titles, colors, output_dir="results", filename="comparison_visualization.png"):
     fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(15, 20), dpi=80)
 
-    for i, key in enumerate(selected_features):
+    # 只对原始特征进行对比（不包含时间特征）
+    original_features = [f for f in selected_features if f in raw_df.columns]
+    
+    for i, key in enumerate(original_features):
+        if i >= 8:  # 限制在4行2列的布局内
+            break
         ax = axes[i // 2, i % 2]
         ax.plot(raw_df[key].values, color=colors[i % len(colors)], label="原始数据")
         ax.plot(normalized_df[key].values, color="black", label="归一化数据")
-        ax.set_title(f"{selected_titles[i]} - 原始数据 vs 归一化数据")
+        if i < len(selected_titles):
+            ax.set_title(f"{selected_titles[i]} - 原始数据 vs 归一化数据")
+        else:
+            ax.set_title(f"{key} - 原始数据 vs 归一化数据")
         ax.set_xlabel("时间步")
         ax.set_ylabel("数值")
         ax.legend()
@@ -117,3 +132,48 @@ def show_plot(plot_data, delta, title):
     plt.xlabel("时间步")
     plt.ylabel("数值")
     plt.show()
+
+
+def visualize_validation_predictions(true_values, predictions, output_dir="results", filename="validation_predictions.png"):
+    """可视化整个验证集的真实值和预测值对比"""
+    import numpy as np
+    
+    # 转换为 NumPy 数组
+    true_values = np.array(true_values)
+    predictions = np.array(predictions)
+    
+    # 保存主图
+    plt.figure(figsize=(16, 6))
+    plt.plot(true_values, label="真实值", color="blue", alpha=0.7, linewidth=1.5)
+    plt.plot(predictions, label="预测值", color="red", alpha=0.7, linewidth=1.5)
+    plt.title("验证集真实值 vs 预测值对比")
+    plt.xlabel("样本索引")
+    plt.ylabel("数值")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    os.makedirs(output_dir, exist_ok=True)
+    save_path = os.path.join(output_dir, filename)
+    plt.savefig(save_path, bbox_inches="tight", dpi=100)
+    print(f"验证集预测对比图已保存至 {save_path}")
+    plt.show()
+    
+    # 绘制残差图
+    plt.figure(figsize=(16, 4))
+    residuals = true_values - predictions
+    plt.plot(residuals, label="残差", color="green", alpha=0.7)
+    plt.axhline(y=0, color="black", linestyle="--", alpha=0.8)
+    plt.title("残差图（真实值 - 预测值）")
+    plt.xlabel("样本索引")
+    plt.ylabel("残差")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    # 保存残差图
+    residual_filename = "validation_residuals.png"
+    residual_path = os.path.join(output_dir, residual_filename)
+    plt.savefig(residual_path, bbox_inches="tight", dpi=100)
+    print(f"残差图已保存至 {residual_path}")
+    plt.show()
+    
+    return save_path

@@ -36,7 +36,7 @@ CONFIG = {
     "step": 6,
     "batch_size": 256,
     "epochs": 50,
-    "learning_rate": 0.0003,
+    "learning_rate": 0.0002,
     "loss": "mae",
     "activation": "gelu",
     "projection_dim": 64,
