@@ -31,18 +31,20 @@ RESULTS_DIR = DRIVE_ROOT / PROJECT_NAME / "results" / RUN_NAME
 
 CONFIG = {
     "train_ratio": 0.715,
-    "past": 336,
+    "past": 720,
     "future": 72,
     "step": 6,
     "batch_size": 128,
     "epochs": 50,
-    "learning_rate": 0.00005,
+    "learning_rate": 0.0001,
     "loss": "mae",
     "activation": "relu",
-    "filters": [32, 64],
+    "filters": [64, 128],
     "kernel_size": 5,
-    "dropout_rate": 0.3,
+    "dropout_rate": 0.15,
     "early_stopping_patience": 5,
+    "use_batch_norm": True,
+    "residual_connection": True,
     "checkpoint_name": "best_cnn_model.weights.h5",
     "full_model_name": "cnn_model.keras",
 }
@@ -209,6 +211,8 @@ def main():
         filters=CONFIG["filters"],
         kernel_size=CONFIG["kernel_size"],
         dropout_rate=CONFIG["dropout_rate"],
+        use_batch_norm=CONFIG["use_batch_norm"],
+        residual_connection=CONFIG["residual_connection"],
     )
     save_model_summary(model, RESULTS_DIR / "model_summary.txt")
 
