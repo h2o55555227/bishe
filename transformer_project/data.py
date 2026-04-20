@@ -94,8 +94,7 @@ def get_selected_features(df):
             date_time = date_time.ffill()
             date_time = date_time.bfill()
         
-        features.index = date_time
-
+        # 计算时间特征（不修改features的index，避免索引对齐问题）
         hour = date_time.dt.hour + date_time.dt.minute / 60.0
         day_of_year = date_time.dt.dayofyear - 1
 
@@ -103,10 +102,14 @@ def get_selected_features(df):
         hour = hour.fillna(0)
         day_of_year = day_of_year.fillna(0)
 
-        features["hour_sin"] = np.sin(2 * np.pi * hour / 24.0)
-        features["hour_cos"] = np.cos(2 * np.pi * hour / 24.0)
-        features["day_sin"] = np.sin(2 * np.pi * day_of_year / 365.0)
-        features["day_cos"] = np.cos(2 * np.pi * day_of_year / 365.0)
+        # 直接使用 .values 赋值，避免索引对齐问题
+        features["hour_sin"] = np.sin(2 * np.pi * hour.values / 24.0)
+        features["hour_cos"] = np.cos(2 * np.pi * hour.values / 24.0)
+        features["day_sin"] = np.sin(2 * np.pi * day_of_year.values / 365.0)
+        features["day_cos"] = np.cos(2 * np.pi * day_of_year.values / 365.0)
+        
+        # 最后才设置索引
+        features.index = date_time
         
     except Exception as e:
         print(f"警告：时间处理失败: {e}，使用默认值")
