@@ -81,18 +81,42 @@ def download_and_load_data(data_dir="."):
 
 def get_selected_features(df):
     features = df[selected_features].copy()
-    date_time = pd.to_datetime(
-        df[DATE_TIME_KEY], format="%d.%m.%Y %H:%M:%S", errors="raise"
-    )
-    features.index = date_time
+    
+    # 更安全的时间解析
+    try:
+        date_time = pd.to_datetime(
+            df[DATE_TIME_KEY], format="%d.%m.%Y %H:%M:%S", errors="coerce"
+        )
+        
+        # 检查是否有 NaT 值
+        if date_time.isna().any():
+            print(f"警告：发现 {date_time.isna().sum()} 个无效的时间戳，使用前向填充处理")
+            date_time = date_time.ffill()
+            date_time = date_time.bfill()
+        
+        features.index = date_time
 
-    hour = date_time.dt.hour + date_time.dt.minute / 60.0
-    day_of_year = date_time.dt.dayofyear - 1
+        hour = date_time.dt.hour + date_time.dt.minute / 60.0
+        day_of_year = date_time.dt.dayofyear - 1
 
-    features["hour_sin"] = np.sin(2 * np.pi * hour / 24.0)
-    features["hour_cos"] = np.cos(2 * np.pi * hour / 24.0)
-    features["day_sin"] = np.sin(2 * np.pi * day_of_year / 365.0)
-    features["day_cos"] = np.cos(2 * np.pi * day_of_year / 365.0)
+        # 检查并填充 NaN
+        hour = hour.fillna(0)
+        day_of_year = day_of_year.fillna(0)
+
+        features["hour_sin"] = np.sin(2 * np.pi * hour / 24.0)
+        features["hour_cos"] = np.cos(2 * np.pi * hour / 24.0)
+        features["day_sin"] = np.sin(2 * np.pi * day_of_year / 365.0)
+        features["day_cos"] = np.cos(2 * np.pi * day_of_year / 365.0)
+        
+    except Exception as e:
+        print(f"警告：时间处理失败: {e}，使用默认值")
+        # 如果时间处理失败，使用索引作为伪时间
+        fake_hour = np.arange(len(df)) % 24
+        fake_day = np.arange(len(df)) % 365
+        features["hour_sin"] = np.sin(2 * np.pi * fake_hour / 24.0)
+        features["hour_cos"] = np.cos(2 * np.pi * fake_hour / 24.0)
+        features["day_sin"] = np.sin(2 * np.pi * fake_day / 365.0)
+        features["day_cos"] = np.cos(2 * np.pi * fake_day / 365.0)
 
     return features
 
