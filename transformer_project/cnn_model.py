@@ -25,11 +25,11 @@ def cnn_block(x, filters, kernel_size, activation, dropout_rate, use_batch_norm,
 def build_cnn_model(
     input_shape,
     activation="relu",
-    filters=[64, 128],
-    kernel_size=5,
-    dropout_rate=0.15,
-    use_batch_norm=True,
-    residual_connection=True,
+    filters=[32, 64],
+    kernel_size=3,
+    dropout_rate=0.1,
+    use_batch_norm=False,
+    residual_connection=False,
 ):
     inputs = keras.Input(shape=input_shape)
     x = inputs
