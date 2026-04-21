@@ -232,9 +232,22 @@ def main():
 
     print("[7/7] Evaluating model and saving artifacts...")
     all_true_values, all_predictions = predict_all(model, dataset_val)
-    metrics = compute_metrics(all_true_values, all_predictions)
+    
+    # 反归一化：使用目标变量的均值和标准差
+    target_feature = TARGET_FEATURE
+    target_mean = train_mean[target_feature]
+    target_std = train_std[target_feature]
+    
+    # 反归一化真实值和预测值
+    all_true_values_denorm = np.array(all_true_values) * target_std + target_mean
+    all_predictions_denorm = np.array(all_predictions) * target_std + target_mean
+    
+    # 计算反归一化后的指标
+    metrics = compute_metrics(all_true_values_denorm, all_predictions_denorm)
     print(json.dumps(to_serializable_dict(metrics), indent=2, ensure_ascii=False))
-    save_predictions_csv(all_true_values, all_predictions, RESULTS_DIR / "predictions.csv")
+    
+    # 保存反归一化后的预测结果
+    save_predictions_csv(all_true_values_denorm, all_predictions_denorm, RESULTS_DIR / "predictions.csv")
     save_json(metrics, RESULTS_DIR / "metrics.json")
     save_json(history.history, RESULTS_DIR / "history.json")
     save_json(
