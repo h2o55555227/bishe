@@ -34,15 +34,15 @@ CONFIG = {
     "past": 240,
     "future": 24,
     "step": 6,
-    "batch_size": 128,
-    "epochs": 50,
-    "learning_rate": 0.00015,
+    "batch_size": 64,
+    "epochs": 30,
+    "learning_rate": 0.0001,
     "loss": "mae",
     "activation": "relu",
     "filters": [32, 64],
     "kernel_size": 3,
-    "dropout_rate": 0.1,
-    "early_stopping_patience": 3,
+    "dropout_rate": 0.15,
+    "early_stopping_patience": 2,
     "use_batch_norm": False,
     "residual_connection": False,
     "checkpoint_name": "best_cnn_model.weights.h5",
@@ -245,9 +245,7 @@ def main():
     # 计算反归一化后的指标
     metrics = compute_metrics(all_true_values_denorm, all_predictions_denorm)
     print(json.dumps(to_serializable_dict(metrics), indent=2, ensure_ascii=False))
-    
-    # 保存反归一化后的预测结果
-    save_predictions_csv(all_true_values_denorm, all_predictions_denorm, RESULTS_DIR / "predictions.csv")
+    save_predictions_csv(all_true_values, all_predictions, RESULTS_DIR / "predictions.csv")
     save_json(metrics, RESULTS_DIR / "metrics.json")
     save_json(history.history, RESULTS_DIR / "history.json")
     save_json(

@@ -27,7 +27,7 @@ def build_cnn_model(
     activation="relu",
     filters=[32, 64],
     kernel_size=3,
-    dropout_rate=0.1,
+    dropout_rate=0.15,
     use_batch_norm=False,
     residual_connection=False,
 ):
