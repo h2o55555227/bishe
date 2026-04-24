@@ -1,5 +1,6 @@
 from tensorflow import keras
 from tensorflow.keras import layers
+from tensorflow.keras import backend as K
 
 
 def transformer_block(
@@ -62,7 +63,7 @@ def build_transformer_model(
     weights = layers.Dense(1)(x)
     weights = layers.Softmax(axis=1)(weights)
     x = layers.Multiply()([x, weights])
-    x = layers.Lambda(lambda x: x.sum(axis=1), output_shape=(projection_dim,))(x)
+    x = layers.Lambda(lambda x: K.sum(x, axis=1), output_shape=(projection_dim,))(x)
     x = layers.Dropout(dropout_rate)(x)
     outputs = layers.Dense(1)(x)
 
