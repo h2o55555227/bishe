@@ -38,9 +38,7 @@ CONFIG = {
     "epochs": 50,
     "learning_rate": 0.0002,
     "loss": "mae",
-    "lstm_units": 128,
-    "dropout_rate": 0.2,
-    "recurrent_dropout": 0.1,
+    "lstm_units": 32,
     "early_stopping_patience": 8,
     "checkpoint_name": "best_lstm_model.weights.h5",
     "full_model_name": "lstm_model.keras",
@@ -246,8 +244,6 @@ def main():
     model = build_lstm_model(
         (sequence_length, input_feature_count),
         lstm_units=CONFIG["lstm_units"],
-        dropout_rate=CONFIG["dropout_rate"],
-        recurrent_dropout=CONFIG["recurrent_dropout"],
     )
     save_model_summary(model, RESULTS_DIR / "model_summary.txt")
 
