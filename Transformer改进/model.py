@@ -62,7 +62,7 @@ def build_transformer_model(
     weights = layers.Dense(1)(x)
     weights = layers.Softmax(axis=1)(weights)
     x = layers.Multiply()([x, weights])
-    x = layers.Lambda(lambda x: x.sum(axis=1))(x)
+    x = layers.Lambda(lambda x: x.sum(axis=1), output_shape=(projection_dim,))(x)
     x = layers.Dropout(dropout_rate)(x)
     outputs = layers.Dense(1)(x)
 
