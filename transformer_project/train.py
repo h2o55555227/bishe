@@ -41,7 +41,7 @@ def train_model(
     checkpoint_path="model_checkpoint.weights.h5",
     learning_rate=0.0003,
     early_stopping_patience=8,
-    loss="mae",
+    loss="mse",
 ):
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
