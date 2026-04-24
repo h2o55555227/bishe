@@ -38,8 +38,7 @@ CONFIG = {
     "epochs": 50,
     "learning_rate": 0.0002,
     "loss": "mae",
-    "lstm_units_1": 128,
-    "lstm_units_2": 64,
+    "lstm_units": 128,
     "dropout_rate": 0.2,
     "recurrent_dropout": 0.1,
     "early_stopping_patience": 8,
@@ -246,8 +245,7 @@ def main():
     print("[5/7] Building model...")
     model = build_lstm_model(
         (sequence_length, input_feature_count),
-        lstm_units_1=CONFIG["lstm_units_1"],
-        lstm_units_2=CONFIG["lstm_units_2"],
+        lstm_units=CONFIG["lstm_units"],
         dropout_rate=CONFIG["dropout_rate"],
         recurrent_dropout=CONFIG["recurrent_dropout"],
     )
