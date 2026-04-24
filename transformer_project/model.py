@@ -22,7 +22,7 @@ def transformer_block(
 
 def build_transformer_model(
     input_shape,
-    activation="gelu",
+    activation="swish",
     projection_dim=128,
     num_heads=8,
     ff_dim=256,
@@ -44,7 +44,7 @@ def build_transformer_model(
             dropout_rate=dropout_rate,
         )
 
-    x = layers.GlobalAveragePooling1D()(x)
+    x = layers.Lambda(lambda x: x[:, -1, :])(x)
     x = layers.Dropout(dropout_rate)(x)
     outputs = layers.Dense(1)(x)
 
