@@ -49,6 +49,7 @@ selected_feature_indices = [0, 1, 5, 7, 8, 10, 11]
 selected_features = [feature_keys[i] for i in selected_feature_indices]
 selected_titles = [titles[i] for i in selected_feature_indices]
 time_feature_names = ["hour_sin", "hour_cos", "day_sin", "day_cos"]
+diff_feature_names = [f"{feat}_diff" for feat in selected_features]
 colors = [
     "blue",
     "orange",
@@ -120,6 +121,13 @@ def get_selected_features(df):
         features["hour_cos"] = np.cos(2 * np.pi * fake_hour / 24.0)
         features["day_sin"] = np.sin(2 * np.pi * fake_day / 365.0)
         features["day_cos"] = np.cos(2 * np.pi * fake_day / 365.0)
+    
+    # 添加差分特征
+    for feat in selected_features:
+        diff_col = f"{feat}_diff"
+        features[diff_col] = features[feat].diff()
+        # 填充第一个NaN值为0
+        features[diff_col] = features[diff_col].fillna(0)
 
     return features
 

@@ -1,5 +1,6 @@
 from data import (
     DATE_TIME_KEY,
+    TARGET_FEATURE,
     colors,
     download_and_load_data,
     get_selected_features,
@@ -75,6 +76,8 @@ def main():
 
     print("[2/8] 开始选择特征...")
     raw_features = get_selected_features(df)
+    input_feature_count = raw_features.shape[1]
+    target_feature_index = raw_features.columns.get_loc(TARGET_FEATURE)
     print(f"特征选择完成。特征数据形状: {raw_features.shape}")
     print()
 
@@ -138,14 +141,14 @@ def main():
     else:
         # 如果模型文件不存在，则创建新模型
         print(f"警告: 模型文件 {model_path} 不存在，将创建新模型...")
-        model = build_transformer_model((sequence_length, len(selected_features)), activation="swish", patch_size=12)
+        model = build_transformer_model((sequence_length, input_feature_count), activation="swish", patch_size=12)
         print("模型构建完成。")
         print("模型摘要:")
         model.summary()
     print()
 
     print("[7/8] 预测样例并可视化...")
-    predict_examples(model, dataset_val, num_examples=5, show_function=show_plot)
+    predict_examples(model, dataset_val, num_examples=5, show_function=show_plot, target_feature_index=target_feature_index)
     print()
 
     print("[8/8] 开始对整个验证集进行预测并计算指标...")

@@ -15,6 +15,7 @@ from data import (
     normalize_features,
     selected_features,
     time_feature_names,
+    diff_feature_names,
     split_features,
     build_timeseries_datasets,
 )
@@ -223,6 +224,8 @@ def main():
     input_feature_count = raw_features.shape[1]
     target_feature_index = raw_features.columns.get_loc(TARGET_FEATURE)
     print(f"Feature shape: {raw_features.shape}")
+    print(f"Added time features: {time_feature_names}")
+    print(f"Added diff features: {diff_feature_names}")
 
     train_split = int(CONFIG["train_ratio"] * len(df))
     print("[3/7] Normalizing and splitting data...")
