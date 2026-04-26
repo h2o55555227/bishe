@@ -37,7 +37,7 @@ CONFIG = {
     "step": 6,
     "batch_size": 256,
     "epochs": 50,
-    "learning_rate": 0.0002,
+    "learning_rate": 0.0001,
     "loss": "mse",
     "activation": "swish",
     "projection_dim": 128,
