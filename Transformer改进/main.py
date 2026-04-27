@@ -121,7 +121,7 @@ def main():
 
     print("[5/8] 开始加载模型...")
     # 指定模型路径
-    model_path = r"E:\毕设\实验\results\transformer终稿-20260426T105554Z-3-001\transformer终稿\transformer_model.keras"
+    model_path = r"E:\毕设\实验\results\Transformer+GELU\transformer_model.keras"
     
     # 检查在不同操作系统下的路径
     if not os.path.exists(model_path):
@@ -149,7 +149,7 @@ def main():
     else:
         # 如果模型文件不存在，则创建新模型
         print(f"警告: 模型文件 {model_path} 不存在，将创建新模型...")
-        model = build_transformer_model((sequence_length, input_feature_count), activation="gelu", projection_dim=128, num_heads=8, ff_dim=256, num_transformer_blocks=3, patch_size=12)
+        model = build_transformer_model((sequence_length, input_feature_count), activation="relu", projection_dim=128, num_heads=8, ff_dim=256, num_transformer_blocks=3, patch_size=12)
         print("模型构建完成。")
         print("模型摘要:")
         model.summary()

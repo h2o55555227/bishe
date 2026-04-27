@@ -39,7 +39,7 @@ CONFIG = {
     "epochs": 50,
     "learning_rate": 0.0001,
     "loss": "mse",
-    "activation": "gelu",
+    "activation": "relu",
     "projection_dim": 128,
     "num_heads": 8,
     "ff_dim": 256,
@@ -160,16 +160,16 @@ def save_prediction_examples(
 
 
 def save_validation_predictions_plot(
-    true_values, predictions, path, num_points=400
+    true_values, predictions, path, num_points=400, start_idx=0
 ):
     """保存完整验证集的真实值和预测值对比图"""
-    true_values = np.array(true_values)[:num_points]
-    predictions = np.array(predictions)[:num_points]
+    true_values = np.array(true_values)[start_idx:start_idx+num_points]
+    predictions = np.array(predictions)[start_idx:start_idx+num_points]
 
     plt.figure(figsize=(16, 6))
     plt.plot(true_values, label="True Value", color="blue", alpha=0.7, linewidth=1.5)
     plt.plot(predictions, label="Predicted Value", color="red", alpha=0.7, linewidth=1.5)
-    plt.title(f"Validation Predictions (First {num_points} Points)")
+    plt.title(f"Validation Predictions (From Point {start_idx}, {num_points} Points)")
     plt.xlabel("Sample Index")
     plt.ylabel("Normalized Temperature")
     plt.legend()
@@ -185,7 +185,7 @@ def save_validation_predictions_plot(
     plt.figure(figsize=(16, 4))
     plt.plot(residuals, label="Residuals", color="green", alpha=0.7)
     plt.axhline(y=0, color="black", linestyle="--", alpha=0.8)
-    plt.title(f"Residuals (First {num_points} Points)")
+    plt.title(f"Residuals (From Point {start_idx}, {num_points} Points)")
     plt.xlabel("Sample Index")
     plt.ylabel("Residual (true - pred)")
     plt.legend()
@@ -322,6 +322,8 @@ def main():
         all_true_values,
         all_predictions,
         RESULTS_DIR / "validation_predictions.png",
+        start_idx=52272,
+        num_points=400,
     )
 
     print("Done. All outputs are saved to Google Drive.")
