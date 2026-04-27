@@ -39,7 +39,7 @@ CONFIG = {
     "epochs": 50,
     "learning_rate": 0.0001,
     "loss": "mse",
-    "activation": "swish",
+    "activation": "gelu",
     "projection_dim": 128,
     "num_heads": 8,
     "ff_dim": 256,
@@ -305,6 +305,8 @@ def main():
         RESULTS_DIR / "normalization_params.json",
     )
 
+    # Load best weights from checkpoint before saving full model
+    model.load_weights(checkpoint_path)
     full_model_path = RESULTS_DIR / CONFIG["full_model_name"]
     model.save(full_model_path)
     print(f"Saved full model: {full_model_path}")

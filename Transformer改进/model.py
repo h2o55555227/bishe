@@ -23,7 +23,7 @@ def transformer_block(
 
 def build_transformer_model(
     input_shape,
-    activation="swish",
+    activation="gelu",
     projection_dim=128,
     num_heads=8,
     ff_dim=256,

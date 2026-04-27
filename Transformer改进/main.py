@@ -1,3 +1,9 @@
+import csv
+import json
+import os
+from tensorflow import keras
+from tensorflow.keras import backend as K
+
 from data import (
     DATE_TIME_KEY,
     TARGET_FEATURE,
@@ -14,9 +20,6 @@ from evaluate import compute_metrics
 from model import build_transformer_model
 from predict import predict_all, predict_examples
 from train import train_model
-import csv
-import json
-import os
 
 from visualization import (
     show_comparison_visualization,
@@ -118,7 +121,7 @@ def main():
 
     print("[5/8] 开始加载模型...")
     # 指定模型路径
-    model_path = r"E:\毕设\实验\results\run_20260420_053714\transformer_model.keras"
+    model_path = r"E:\毕设\实验\results\transformer终稿-20260426T105554Z-3-001\transformer终稿\transformer_model.keras"
     
     # 检查在不同操作系统下的路径
     if not os.path.exists(model_path):
@@ -133,7 +136,12 @@ def main():
                 model_path = model_path_h5
     
     if os.path.exists(model_path):
-        from tensorflow import keras
+        # 启用不安全的反序列化以加载包含Lambda层的旧模型
+        keras.config.enable_unsafe_deserialization()
+        # 将K注入到全局作用域供Lambda层使用
+        import builtins
+        builtins.__dict__['K'] = K
+        # 加载模型
         model = keras.models.load_model(model_path)
         print(f"模型加载完成: {model_path}")
         print("模型摘要:")
@@ -141,7 +149,7 @@ def main():
     else:
         # 如果模型文件不存在，则创建新模型
         print(f"警告: 模型文件 {model_path} 不存在，将创建新模型...")
-        model = build_transformer_model((sequence_length, input_feature_count), activation="swish", projection_dim=128, num_heads=8, ff_dim=256, num_transformer_blocks=3, patch_size=12)
+        model = build_transformer_model((sequence_length, input_feature_count), activation="gelu", projection_dim=128, num_heads=8, ff_dim=256, num_transformer_blocks=3, patch_size=12)
         print("模型构建完成。")
         print("模型摘要:")
         model.summary()
@@ -166,10 +174,10 @@ def main():
     print(f"预测值均值: {metrics['pred_mean']:.4f}, 标准差: {metrics['pred_std']:.4f}")
     print()
     
-    # print("[8.1/8] 开始可视化验证集预测结果...")
-    # visualize_validation_predictions(all_true_values, all_predictions, output_dir=RESULTS_DIR)
-    # print("可视化完成。")
-    # print()
+    print("[8.1/8] 开始可视化验证集预测结果...")
+    visualize_validation_predictions(all_true_values, all_predictions, output_dir=RESULTS_DIR)
+    print("可视化完成。")
+    print()
 
     save_predictions(all_true_values, all_predictions, output_dir=RESULTS_DIR)
     save_metrics(metrics, output_dir=RESULTS_DIR)
