@@ -1,3 +1,4 @@
+import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import backend as K
@@ -23,17 +24,18 @@ def transformer_block(
 
 def build_transformer_model(
     input_shape,
-    activation="relu",
-    projection_dim=128,
-    num_heads=8,
-    ff_dim=256,
-    num_transformer_blocks=3,
-    dropout_rate=0.1,
-    patch_size=12,
+    activation="gelu",
+    projection_dim=192,
+    num_heads=12,
+    ff_dim=384,
+    num_transformer_blocks=4,
+    dropout_rate=0.12,
+    patch_size=10,
+    use_positional_encoding=True,
 ):
     inputs = keras.Input(shape=input_shape)
     
-    # CNN局部特征提取
+    # CNN局部特征提取 - 平衡版
     x = layers.Conv1D(filters=projection_dim, kernel_size=3, padding='same', activation=activation)(inputs)
     x = layers.Conv1D(filters=projection_dim, kernel_size=3, padding='same', activation=activation)(x)
     
@@ -47,6 +49,12 @@ def build_transformer_model(
     # Map to embedding dimension
     x = layers.Dense(projection_dim)(x)
     x = layers.Dropout(dropout_rate)(x)
+    
+    # 位置编码
+    if use_positional_encoding:
+        position = tf.range(start=0, limit=num_patches, delta=1)
+        position_embedding = layers.Embedding(input_dim=num_patches, output_dim=projection_dim)(position)
+        x = x + position_embedding
 
     for _ in range(num_transformer_blocks):
         x = transformer_block(
@@ -65,6 +73,11 @@ def build_transformer_model(
     x = layers.Multiply()([x, weights])
     x = layers.Lambda(lambda x: K.sum(x, axis=1), output_shape=(projection_dim,))(x)
     x = layers.Dropout(dropout_rate)(x)
+    
+    # 预测头简化版
+    x = layers.Dense(projection_dim // 2, activation=activation)(x)
+    x = layers.Dropout(dropout_rate)(x)
+    
     outputs = layers.Dense(1)(x)
 
-    return keras.Model(inputs, outputs)
+    return keras.Model(inputs=inputs, outputs=outputs)

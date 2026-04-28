@@ -1,5 +1,5 @@
 from tensorflow import keras
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 
 
 class EpochProgressCallback(keras.callbacks.Callback):
@@ -37,14 +37,27 @@ def train_model(
     model,
     dataset_train,
     dataset_val,
-    epochs=50,
+    epochs=100,
     checkpoint_path="model_checkpoint.weights.h5",
-    learning_rate=0.0001,
-    early_stopping_patience=8,
+    learning_rate=0.0003,
+    early_stopping_patience=15,
     loss="mse",
 ):
+    # 学习率调度器
+    lr_schedule = keras.optimizers.schedules.CosineDecay(
+        initial_learning_rate=learning_rate,
+        decay_steps=epochs * len(list(dataset_train)) // 2,
+        alpha=0.1
+    )
+    
     model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
+        optimizer=keras.optimizers.AdamW(
+            learning_rate=lr_schedule,
+            weight_decay=0.01,
+            beta_1=0.9,
+            beta_2=0.98,
+            epsilon=1e-9
+        ),
         loss=loss,
     )
 
@@ -52,12 +65,21 @@ def train_model(
         monitor="val_loss",
         patience=early_stopping_patience,
         restore_best_weights=True,
+        min_delta=1e-5
     )
     modelckpt_callback = ModelCheckpoint(
         filepath=checkpoint_path,
         monitor="val_loss",
         save_best_only=True,
         save_weights_only=True,
+        save_freq='epoch'
+    )
+    lr_reduce_callback = ReduceLROnPlateau(
+        monitor="val_loss",
+        factor=0.5,
+        patience=7,
+        min_lr=1e-6,
+        verbose=1
     )
     progress_callback = EpochProgressCallback()
 
@@ -65,7 +87,7 @@ def train_model(
         dataset_train,
         epochs=epochs,
         validation_data=dataset_val,
-        callbacks=[es_callback, modelckpt_callback, progress_callback],
+        callbacks=[es_callback, modelckpt_callback, lr_reduce_callback, progress_callback],
         verbose=0,
     )
     return history
