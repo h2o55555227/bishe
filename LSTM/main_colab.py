@@ -35,10 +35,11 @@ CONFIG = {
     "future": 72,
     "step": 6,
     "batch_size": 256,
-    "epochs": 25,
+    "epochs": 15,
     "learning_rate": 0.0005,
     "loss": "mae",
-    "lstm_units": 8,
+    "lstm_units": 4,
+    "dropout_rate": 0.3,
     "early_stopping_patience": 8,
     "checkpoint_name": "best_lstm_model.weights.h5",
     "full_model_name": "lstm_model.keras",
@@ -244,6 +245,7 @@ def main():
     model = build_lstm_model(
         (sequence_length, input_feature_count),
         lstm_units=CONFIG["lstm_units"],
+        dropout_rate=CONFIG["dropout_rate"],
     )
     save_model_summary(model, RESULTS_DIR / "model_summary.txt")
 

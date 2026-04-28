@@ -37,9 +37,9 @@ def train_model(
     model,
     dataset_train,
     dataset_val,
-    epochs=50,
+    epochs=15,
     checkpoint_path="model_checkpoint.weights.h5",
-    learning_rate=0.0003,
+    learning_rate=0.0005,
     early_stopping_patience=8,
     loss="mae",
 ):
