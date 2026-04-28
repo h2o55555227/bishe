@@ -4,7 +4,7 @@ from tensorflow.keras import layers
 
 def build_lstm_model(
     input_shape,
-    lstm_units=32,
+    lstm_units=8,
 ):
     """构建超简单的 LSTM 时间序列预测模型"""
     inputs = keras.Input(shape=input_shape)
