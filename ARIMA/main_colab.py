@@ -174,7 +174,6 @@ def main():
     print(f"Data shape: {df.shape}")
     print(f"Time range: {df[DATE_TIME_KEY].iloc[0]} -> {df[DATE_TIME_KEY].iloc[-1]}")
     print(f"Selected features: {selected_features}")
-    print(f"Added time features: {time_feature_names}")
 
     print("[2/6] Selecting features...")
     raw_features = get_selected_features(df)
@@ -219,6 +218,8 @@ def main():
     )
 
     print("[6/6] Evaluating model and saving artifacts...")
+    val_start_in_dataset = 52272
+    val_start_idx = val_start_in_dataset - train_split
     all_true_values, all_predictions = predict_arima_all(
         model,
         val_data,
@@ -226,7 +227,9 @@ def main():
         target_feature_index=target_feature_index,
         future=CONFIG["future"],
         step=CONFIG["step"],
-        strategy="hybrid"
+        strategy="fixed",
+        start_idx=val_start_idx,
+        num_points=400
     )
     metrics = compute_metrics(all_true_values, all_predictions)
     print(json.dumps(to_serializable_dict(metrics), indent=2, ensure_ascii=False))

@@ -131,6 +131,8 @@ def main():
     print()
 
     print("[7/7] 开始对验证集进行预测并计算指标...")
+    val_start_in_dataset = 52272
+    val_start_idx = val_start_in_dataset - train_split
     all_true_values, all_predictions = predict_arima_all(
         model,
         val_data,
@@ -138,7 +140,9 @@ def main():
         target_feature_index=target_feature_index,
         future=72,
         step=6,
-        strategy="hybrid"
+        strategy="fixed",
+        start_idx=val_start_idx,
+        num_points=400
     )
     metrics = compute_metrics(all_true_values, all_predictions)
     print("预测完成。")
@@ -154,7 +158,7 @@ def main():
     print()
     
     print("[7.1/7] 开始可视化验证集预测结果...")
-    visualize_validation_predictions(all_true_values, all_predictions, output_dir=RESULTS_DIR)
+    visualize_validation_predictions(all_true_values, all_predictions, output_dir=RESULTS_DIR, start_idx=0, num_points=400)
     print("可视化完成。")
     print()
 
