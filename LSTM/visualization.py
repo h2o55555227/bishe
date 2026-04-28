@@ -134,19 +134,19 @@ def show_plot(plot_data, delta, title):
     plt.show()
 
 
-def visualize_validation_predictions(true_values, predictions, output_dir="results", filename="validation_predictions.png", num_points=400):
+def visualize_validation_predictions(true_values, predictions, output_dir="results", filename="validation_predictions.png", num_points=400, start_idx=52272):
     """可视化整个验证集的真实值和预测值对比"""
     import numpy as np
     
-    # 转换为 NumPy 数组并只取前 num_points 个点
-    true_values = np.array(true_values)[:num_points]
-    predictions = np.array(predictions)[:num_points]
+    # 转换为 NumPy 数组并从指定位置开始取 num_points 个点
+    true_values = np.array(true_values)[start_idx:start_idx+num_points]
+    predictions = np.array(predictions)[start_idx:start_idx+num_points]
     
     # 保存主图
     plt.figure(figsize=(16, 6))
     plt.plot(true_values, label="真实值", color="blue", alpha=0.7, linewidth=1.5)
     plt.plot(predictions, label="预测值", color="red", alpha=0.7, linewidth=1.5)
-    plt.title(f"验证集真实值 vs 预测值对比 (前{num_points}个点)")
+    plt.title(f"验证集真实值 vs 预测值对比 (从第{start_idx}个点开始，共{num_points}个点)")
     plt.xlabel("样本索引")
     plt.ylabel("数值")
     plt.legend()
@@ -163,7 +163,7 @@ def visualize_validation_predictions(true_values, predictions, output_dir="resul
     residuals = true_values - predictions
     plt.plot(residuals, label="残差", color="green", alpha=0.7)
     plt.axhline(y=0, color="black", linestyle="--", alpha=0.8)
-    plt.title(f"残差图（真实值 - 预测值）(前{num_points}个点)")
+    plt.title(f"残差图（真实值 - 预测值）(从第{start_idx}个点开始，共{num_points}个点)")
     plt.xlabel("样本索引")
     plt.ylabel("残差")
     plt.legend()

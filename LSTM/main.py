@@ -1,5 +1,10 @@
+import csv
+import json
+import os
+
 from data import (
     DATE_TIME_KEY,
+    TARGET_FEATURE,
     colors,
     download_and_load_data,
     get_selected_features,
@@ -13,9 +18,6 @@ from evaluate import compute_metrics
 from model import build_lstm_model
 from predict import predict_all, predict_examples
 from train import train_model
-import csv
-import json
-import os
 
 from visualization import (
     show_comparison_visualization,
@@ -27,7 +29,7 @@ from visualization import (
 )
 
 
-def save_predictions(true_values, predictions, output_dir="results", filename="predictions.csv"):
+def save_predictions(true_values, predictions, output_dir=r"E:\毕设\实验\LSTM\results", filename="predictions.csv"):
     """保存预测结果到 CSV 文件"""
     import csv
     import numpy as np
@@ -47,7 +49,7 @@ def save_predictions(true_values, predictions, output_dir="results", filename="p
     return path
 
 
-def save_metrics(metrics, output_dir="results", filename="metrics.json"):
+def save_metrics(metrics, output_dir=r"E:\毕设\实验\LSTM\results", filename="metrics.json"):
     """保存评估指标到 JSON 文件"""
     import json
     
@@ -63,9 +65,9 @@ def save_metrics(metrics, output_dir="results", filename="metrics.json"):
 
 def main():
     # 定义结果保存目录
-    RESULTS_DIR = "results"
+    RESULTS_DIR = r"E:\毕设\实验\LSTM\results"
     
-    print("=== Transformer 时间序列预测项目 ===")
+    print("=== LSTM 时间序列预测项目 ===")
     print("[1/8] 开始下载并加载数据...")
     df = download_and_load_data(data_dir=".")
     print(f"数据加载完成。数据集形状: {df.shape}")
@@ -75,6 +77,8 @@ def main():
 
     print("[2/8] 开始选择特征...")
     raw_features = get_selected_features(df)
+    input_feature_count = raw_features.shape[1]
+    target_feature_index = raw_features.columns.get_loc(TARGET_FEATURE)
     print(f"特征选择完成。特征数据形状: {raw_features.shape}")
     print()
 
@@ -115,17 +119,17 @@ def main():
 
     print("[5/8] 开始加载模型...")
     # 指定模型路径
-    model_path = r"E:\毕设\实验\results\run_20260420_053714\transformer_model.keras"
+    model_path = r"E:\毕设\实验\results\LSTM\lstm_model.keras"
     
     # 检查在不同操作系统下的路径
     if not os.path.exists(model_path):
         # 尝试在Colab/Linux环境下的路径
-        colab_model_path = os.path.join(RESULTS_DIR, "transformer_model.keras")
+        colab_model_path = os.path.join(RESULTS_DIR, "lstm_model.keras")
         if os.path.exists(colab_model_path):
             model_path = colab_model_path
         else:
             # 如果都不存在，尝试使用h5格式
-            model_path_h5 = os.path.join(RESULTS_DIR, "transformer_model.h5")
+            model_path_h5 = os.path.join(RESULTS_DIR, "lstm_model.h5")
             if os.path.exists(model_path_h5):
                 model_path = model_path_h5
     
@@ -138,14 +142,14 @@ def main():
     else:
         # 如果模型文件不存在，则创建新模型
         print(f"警告: 模型文件 {model_path} 不存在，将创建新模型...")
-        model = build_lstm_model((sequence_length, len(selected_features)))
+        model = build_lstm_model((sequence_length, input_feature_count))
         print("模型构建完成。")
         print("模型摘要:")
         model.summary()
     print()
 
     print("[7/8] 预测样例并可视化...")
-    predict_examples(model, dataset_val, num_examples=5, show_function=show_plot)
+    predict_examples(model, dataset_val, num_examples=5, show_function=show_plot, target_feature_index=target_feature_index)
     print()
 
     print("[8/8] 开始对整个验证集进行预测并计算指标...")
@@ -163,10 +167,10 @@ def main():
     print(f"预测值均值: {metrics['pred_mean']:.4f}, 标准差: {metrics['pred_std']:.4f}")
     print()
     
-    # print("[8.1/8] 开始可视化验证集预测结果...")
-    # visualize_validation_predictions(all_true_values, all_predictions, output_dir=RESULTS_DIR)
-    # print("可视化完成。")
-    # print()
+    print("[8.1/8] 开始可视化验证集预测结果...")
+    visualize_validation_predictions(all_true_values, all_predictions, output_dir=RESULTS_DIR)
+    print("可视化完成。")
+    print()
 
     save_predictions(all_true_values, all_predictions, output_dir=RESULTS_DIR)
     save_metrics(metrics, output_dir=RESULTS_DIR)
