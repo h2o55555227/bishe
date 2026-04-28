@@ -225,7 +225,8 @@ def main():
         train_data,
         target_feature_index=target_feature_index,
         future=CONFIG["future"],
-        step=CONFIG["step"]
+        step=CONFIG["step"],
+        strategy="hybrid"
     )
     metrics = compute_metrics(all_true_values, all_predictions)
     print(json.dumps(to_serializable_dict(metrics), indent=2, ensure_ascii=False))

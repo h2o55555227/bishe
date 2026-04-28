@@ -137,7 +137,8 @@ def main():
         train_data,
         target_feature_index=target_feature_index,
         future=72,
-        step=6
+        step=6,
+        strategy="hybrid"
     )
     metrics = compute_metrics(all_true_values, all_predictions)
     print("预测完成。")
