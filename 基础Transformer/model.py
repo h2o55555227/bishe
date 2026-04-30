@@ -1,23 +1,6 @@
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import backend as K
-import tensorflow as tf
-
-
-class PositionalEncoding(layers.Layer):
-    def __init__(self, sequence_length, output_dim, **kwargs):
-        super().__init__(**kwargs)
-        self.position_embeddings = layers.Embedding(
-            input_dim=sequence_length, output_dim=output_dim
-        )
-        self.sequence_length = sequence_length
-        self.output_dim = output_dim
-
-    def call(self, inputs):
-        length = tf.shape(inputs)[1]
-        positions = tf.range(start=0, limit=length, delta=1)
-        embedded_positions = self.position_embeddings(positions)
-        return inputs + embedded_positions
 
 
 def transformer_block(
@@ -46,15 +29,20 @@ def build_transformer_model(
     ff_dim=256,
     num_transformer_blocks=3,
     dropout_rate=0.1,
+    patch_size=12,
 ):
     inputs = keras.Input(shape=input_shape)
     
+    # Patch Embedding（移除了CNN层）
     sequence_length, num_features = input_shape
+    num_patches = sequence_length // patch_size
     
-    x = layers.Dense(projection_dim)(inputs)
+    # Reshape: (batch, sequence_length, features) -> (batch, num_patches, patch_size * features)
+    x = layers.Reshape((num_patches, patch_size * num_features))(inputs)
+    
+    # Map to embedding dimension
+    x = layers.Dense(projection_dim)(x)
     x = layers.Dropout(dropout_rate)(x)
-    
-    x = PositionalEncoding(sequence_length, projection_dim)(x)
 
     for _ in range(num_transformer_blocks):
         x = transformer_block(
