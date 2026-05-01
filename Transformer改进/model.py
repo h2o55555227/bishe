@@ -24,18 +24,17 @@ def transformer_block(
 
 def build_transformer_model(
     input_shape,
-    activation="gelu",
-    projection_dim=192,
-    num_heads=12,
-    ff_dim=384,
-    num_transformer_blocks=4,
-    dropout_rate=0.12,
-    patch_size=10,
-    use_positional_encoding=True,
+    activation="relu",
+    projection_dim=128,
+    num_heads=8,
+    ff_dim=256,
+    num_transformer_blocks=3,
+    dropout_rate=0.1,
+    patch_size=12,
 ):
     inputs = keras.Input(shape=input_shape)
     
-    # CNN局部特征提取 - 平衡版
+    # CNN局部特征提取
     x = layers.Conv1D(filters=projection_dim, kernel_size=3, padding='same', activation=activation)(inputs)
     x = layers.Conv1D(filters=projection_dim, kernel_size=3, padding='same', activation=activation)(x)
     
@@ -48,13 +47,18 @@ def build_transformer_model(
     
     # Map to embedding dimension
     x = layers.Dense(projection_dim)(x)
-    x = layers.Dropout(dropout_rate)(x)
     
-    # 位置编码
-    if use_positional_encoding:
-        position = tf.range(start=0, limit=num_patches, delta=1)
-        position_embedding = layers.Embedding(input_dim=num_patches, output_dim=projection_dim)(position)
-        x = x + position_embedding
+    # Learnable Positional Embedding
+    position_embedding = layers.Embedding(
+        input_dim=num_patches,
+        output_dim=projection_dim,
+        name="positional_embedding"
+    )
+    positions = tf.range(start=0, limit=num_patches, delta=1)
+    pos_emb = position_embedding(positions)
+    x = x + pos_emb[tf.newaxis, ...]  # Add positional embedding with broadcasting
+    
+    x = layers.Dropout(dropout_rate)(x)
 
     for _ in range(num_transformer_blocks):
         x = transformer_block(
@@ -73,11 +77,6 @@ def build_transformer_model(
     x = layers.Multiply()([x, weights])
     x = layers.Lambda(lambda x: K.sum(x, axis=1), output_shape=(projection_dim,))(x)
     x = layers.Dropout(dropout_rate)(x)
-    
-    # 预测头简化版
-    x = layers.Dense(projection_dim // 2, activation=activation)(x)
-    x = layers.Dropout(dropout_rate)(x)
-    
     outputs = layers.Dense(1)(x)
 
-    return keras.Model(inputs=inputs, outputs=outputs)
+    return keras.Model(inputs, outputs)

@@ -31,21 +31,23 @@ RUN_NAME = datetime.now().strftime("run_%Y%m%d_%H%M%S")
 RESULTS_DIR = DRIVE_ROOT / PROJECT_NAME / "results" / RUN_NAME
 
 CONFIG = {
-    "train_ratio": 0.75,
-    "past": 960,
+    "train_ratio": 0.715,
+    "past": 720,
     "future": 72,
-    "step": 4,
+    "step": 6,
     "batch_size": 256,
-    "epochs": 60,
-    "learning_rate": 0.0005,
-    "loss": "mse",
-    "activation": "gelu",
-    "projection_dim": 192,
-    "num_heads": 12,
-    "ff_dim": 384,
-    "num_transformer_blocks": 4,
-    "dropout_rate": 0.12,
-    "early_stopping_patience": 10,
+    "epochs": 50,
+    "learning_rate": 0.0001,
+    "loss": "huber",
+    "activation": "swish",
+    "projection_dim": 128,
+    "num_heads": 8,
+    "ff_dim": 256,
+    "num_transformer_blocks": 3,
+    "dropout_rate": 0.1,
+    "early_stopping_patience": 8,
+    "use_lr_scheduler": True,
+    "warmup_epochs": 5,
     "checkpoint_name": "best_model.weights.h5",
     "full_model_name": "transformer_model.keras",
 }
@@ -272,6 +274,8 @@ def main():
         learning_rate=CONFIG["learning_rate"],
         early_stopping_patience=CONFIG["early_stopping_patience"],
         loss=CONFIG["loss"],
+        use_lr_scheduler=CONFIG["use_lr_scheduler"],
+        warmup_epochs=CONFIG["warmup_epochs"],
     )
     save_loss_plot(history, RESULTS_DIR / "loss_curve.png")
 
