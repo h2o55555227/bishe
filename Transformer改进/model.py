@@ -86,37 +86,28 @@ def build_transformer_model(
     inputs = keras.Input(shape=input_shape)
 
     # ==================================
-    # 1. CNN Local Feature Extractor (Upgraded)
+    # 1. CNN Local Feature Extractor
     # ==================================
-    # Conv1D + BatchNorm + GELU
     x = layers.Conv1D(
         128,
         kernel_size=3,
         padding="same",
+        activation=activation
     )(inputs)
-    x = layers.BatchNormalization()(x)
-    x = layers.Activation("gelu")(x)
-    
-    # Conv1D
+
     x = layers.Conv1D(
         128,
         kernel_size=5,
         padding="same",
+        activation=activation
     )(x)
-    
-    # DepthwiseConv1D
-    x = layers.DepthwiseConv1D(
-        kernel_size=3,
-        padding="same",
-    )(x)
-    
-    # Final Conv1D to projection_dim
+
     x = layers.Conv1D(
         projection_dim,
         kernel_size=3,
         dilation_rate=2,
         padding="same",
-        activation=activation,
+        activation=activation
     )(x)
 
     x = layers.Dropout(dropout_rate)(x)
