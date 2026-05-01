@@ -41,13 +41,14 @@ CONFIG = {
     "loss": "huber",
     "activation": "swish",
     "projection_dim": 128,
-    "num_heads": 8,
-    "ff_dim": 256,
+    "num_heads": 4,
+    "ff_dim": 512,
     "num_transformer_blocks": 3,
     "dropout_rate": 0.05,
     "early_stopping_patience": 8,
     "use_lr_scheduler": True,
     "warmup_epochs": 5,
+    "patch_size": 6,
     "checkpoint_name": "best_model.weights.h5",
     "full_model_name": "transformer_model.keras",
 }
@@ -259,7 +260,7 @@ def main():
         ff_dim=CONFIG["ff_dim"],
         num_transformer_blocks=CONFIG["num_transformer_blocks"],
         dropout_rate=CONFIG["dropout_rate"],
-        patch_size=12,
+        patch_size=CONFIG["patch_size"],
     )
     save_model_summary(model, RESULTS_DIR / "model_summary.txt")
 
