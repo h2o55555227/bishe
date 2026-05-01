@@ -43,6 +43,19 @@ class CosineAnnealingWithWarmup(tf.keras.optimizers.schedules.LearningRateSchedu
                 warmup,
                 cosine_decay
             )
+    
+    def get_config(self):
+        return {
+            "initial_learning_rate": self.initial_learning_rate,
+            "warmup_steps": self.warmup_steps,
+            "decay_steps": self.decay_steps,
+            "alpha": self.alpha,
+            "name": self.name,
+        }
+
+
+# 注册自定义学习率调度器
+tf.keras.utils.get_custom_objects().update({'CosineAnnealingWithWarmup': CosineAnnealingWithWarmup})
 
 
 class EpochProgressCallback(keras.callbacks.Callback):

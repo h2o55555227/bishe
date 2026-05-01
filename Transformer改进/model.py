@@ -29,7 +29,7 @@ def build_transformer_model(
     num_heads=8,
     ff_dim=256,
     num_transformer_blocks=3,
-    dropout_rate=0.1,
+    dropout_rate=0.05,
     patch_size=12,
 ):
     inputs = keras.Input(shape=input_shape)

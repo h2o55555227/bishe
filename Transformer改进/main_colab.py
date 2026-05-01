@@ -44,7 +44,7 @@ CONFIG = {
     "num_heads": 8,
     "ff_dim": 256,
     "num_transformer_blocks": 3,
-    "dropout_rate": 0.1,
+    "dropout_rate": 0.05,
     "early_stopping_patience": 8,
     "use_lr_scheduler": True,
     "warmup_epochs": 5,
