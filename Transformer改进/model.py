@@ -8,7 +8,7 @@ def transformer_block(
     num_heads,
     projection_dim,
     ff_dim,
-    activation="swish",
+    activation="gelu",
     dropout_rate=0.05,
 ):
     head_dim = projection_dim // num_heads

@@ -40,7 +40,7 @@ CONFIG = {
     "epochs": 50,
     "learning_rate": 0.00005,
     "loss": "huber",
-    "activation": "swish",
+    "activation": "gelu",
     "projection_dim": 128,
     "num_heads": 4,
     "ff_dim": 512,
