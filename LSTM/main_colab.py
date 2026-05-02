@@ -35,13 +35,12 @@ CONFIG = {
     "future": 72,
     "step": 6,
     "batch_size": 256,
-    "epochs": 15,
-    "learning_rate": 0.0005,
-    "loss": "mae",
-    "lstm_units": 4,
-    "dropout_rate": 0.3,
-    "early_stopping_patience": 8,
-    "checkpoint_name": "best_lstm_model.weights.h5",
+    "epochs": 10,
+    "learning_rate": 0.001,
+    "loss": "mse",
+    "lstm_units": 32,
+    "early_stopping_patience": 5,
+    "checkpoint_name": "model_checkpoint.weights.h5",
     "full_model_name": "lstm_model.keras",
 }
 
@@ -155,16 +154,19 @@ def save_prediction_examples(
 
 
 def save_validation_predictions_plot(
-    true_values, predictions, path, num_points=400
+    true_values, predictions, path, num_points=400, start_idx=52272
 ):
-    """保存完整验证集的真实值和预测值对比图"""
-    true_values = np.array(true_values)[:num_points]
-    predictions = np.array(predictions)[:num_points]
+    """保存完整验证集的真实值和预测值对比图，从指定索引开始"""
+    true_values_full = np.array(true_values)
+    predictions_full = np.array(predictions)
+    
+    true_values = true_values_full[start_idx:start_idx+num_points]
+    predictions = predictions_full[start_idx:start_idx+num_points]
 
     plt.figure(figsize=(16, 6))
     plt.plot(true_values, label="True Value", color="blue", alpha=0.7, linewidth=1.5)
     plt.plot(predictions, label="Predicted Value", color="red", alpha=0.7, linewidth=1.5)
-    plt.title(f"Validation Predictions (First {num_points} Points)")
+    plt.title(f"Validation Predictions (Start at {start_idx}, {num_points} Points)")
     plt.xlabel("Sample Index")
     plt.ylabel("Normalized Temperature")
     plt.legend()
@@ -180,7 +182,7 @@ def save_validation_predictions_plot(
     plt.figure(figsize=(16, 4))
     plt.plot(residuals, label="Residuals", color="green", alpha=0.7)
     plt.axhline(y=0, color="black", linestyle="--", alpha=0.8)
-    plt.title(f"Residuals (First {num_points} Points)")
+    plt.title(f"Residuals (Start at {start_idx}, {num_points} Points)")
     plt.xlabel("Sample Index")
     plt.ylabel("Residual (true - pred)")
     plt.legend()
@@ -245,7 +247,6 @@ def main():
     model = build_lstm_model(
         (sequence_length, input_feature_count),
         lstm_units=CONFIG["lstm_units"],
-        dropout_rate=CONFIG["dropout_rate"],
     )
     save_model_summary(model, RESULTS_DIR / "model_summary.txt")
 

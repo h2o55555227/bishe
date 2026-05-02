@@ -4,17 +4,15 @@ from tensorflow.keras import layers
 
 def build_lstm_model(
     input_shape,
-    lstm_units=4,
-    dropout_rate=0.3,
+    lstm_units=32,
 ):
-    """构建超简单的 LSTM 时间序列预测模型"""
+    """构建 LSTM 时间序列预测模型，与 LSTM.ipynb 对齐"""
     inputs = keras.Input(shape=input_shape)
     
-    # 单层 LSTM，添加dropout
-    x = layers.LSTM(lstm_units, return_sequences=False)(inputs)
-    x = layers.Dropout(dropout_rate)(x)
+    # 单层 LSTM，32个单元
+    lstm_out = layers.LSTM(lstm_units, return_sequences=False)(inputs)
     
     # 输出层
-    outputs = layers.Dense(1)(x)
+    outputs = layers.Dense(1)(lstm_out)
     
     return keras.Model(inputs, outputs)
