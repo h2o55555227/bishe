@@ -13,6 +13,7 @@ from data import (
     download_and_load_data,
     get_selected_features,
     normalize_features,
+    rolling_feature_names,
     selected_features,
     time_feature_names,
     diff_feature_names,
@@ -40,15 +41,18 @@ CONFIG = {
     "learning_rate": 0.0001,
     "loss": "huber",
     "activation": "swish",
-    "projection_dim": 128,
-    "num_heads": 4,
-    "ff_dim": 512,
-    "num_transformer_blocks": 3,
-    "dropout_rate": 0.05,
+    "projection_dim": 160,
+    "num_heads": 8,
+    "ff_dim": 640,
+    "num_transformer_blocks": 4,
+    "dropout_rate": 0.03,
     "early_stopping_patience": 8,
     "use_lr_scheduler": True,
     "warmup_epochs": 5,
-    "patch_size": 6,
+    "patch_size": 3,
+    "finetune_mse_epochs": 10,
+    "finetune_learning_rate": 0.00002,
+    "finetune_patience": 5,
     "checkpoint_name": "best_model.weights.h5",
     "full_model_name": "transformer_model.keras",
 }
@@ -229,6 +233,7 @@ def main():
     print(f"Feature shape: {raw_features.shape}")
     print(f"Added time features: {time_feature_names}")
     print(f"Added diff features: {diff_feature_names}")
+    print(f"Added rolling features: {rolling_feature_names}")
 
     train_split = int(CONFIG["train_ratio"] * len(df))
     print("[3/7] Normalizing and splitting data...")
@@ -277,6 +282,9 @@ def main():
         loss=CONFIG["loss"],
         use_lr_scheduler=CONFIG["use_lr_scheduler"],
         warmup_epochs=CONFIG["warmup_epochs"],
+        finetune_mse_epochs=CONFIG["finetune_mse_epochs"],
+        finetune_learning_rate=CONFIG["finetune_learning_rate"],
+        finetune_patience=CONFIG["finetune_patience"],
     )
     save_loss_plot(history, RESULTS_DIR / "loss_curve.png")
 
@@ -296,6 +304,7 @@ def main():
             "sequence_length": sequence_length,
             "selected_features": selected_features,
             "time_features": time_feature_names,
+            "rolling_features": rolling_feature_names,
             "input_feature_count": input_feature_count,
             "model_input_features": list(raw_features.columns),
         },

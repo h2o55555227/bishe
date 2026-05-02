@@ -2,7 +2,6 @@ import csv
 import json
 import os
 from tensorflow import keras
-from tensorflow.keras import backend as K
 
 from data import (
     DATE_TIME_KEY,
@@ -136,11 +135,8 @@ def main():
                 model_path = model_path_h5
     
     if os.path.exists(model_path):
-        # 启用不安全的反序列化以加载包含Lambda层的旧模型
+        # 启用不安全的反序列化以加载旧模型
         keras.config.enable_unsafe_deserialization()
-        # 将K注入到全局作用域供Lambda层使用
-        import builtins
-        builtins.__dict__['K'] = K
         # 加载模型
         model = keras.models.load_model(model_path)
         print(f"模型加载完成: {model_path}")
@@ -149,7 +145,7 @@ def main():
     else:
         # 如果模型文件不存在，则创建新模型
         print(f"警告: 模型文件 {model_path} 不存在，将创建新模型...")
-        model = build_transformer_model((sequence_length, input_feature_count), activation="swish", projection_dim=128, num_heads=8, ff_dim=256, num_transformer_blocks=3, patch_size=12)
+        model = build_transformer_model((sequence_length, input_feature_count), activation="swish", projection_dim=160, num_heads=8, ff_dim=640, num_transformer_blocks=4, dropout_rate=0.03, patch_size=3)
         print("模型构建完成。")
         print("模型摘要:")
         model.summary()
