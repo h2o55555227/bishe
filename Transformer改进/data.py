@@ -51,14 +51,11 @@ selected_titles = [titles[i] for i in selected_feature_indices]
 time_feature_names = ["hour_sin", "hour_cos", "day_sin", "day_cos"]
 diff_feature_names = [f"{feat}_diff" for feat in selected_features]
 rolling_feature_names = [
-    "T_1h_mean",
     "T_6h_mean",
     "T_24h_mean",
-    "T_6h_std",
     "T_24h_std",
     "T_lag_24h",
     "wv_6h_mean",
-    "p_6h_diff",
     "rh_6h_mean",
 ]
 colors = [
@@ -127,27 +124,18 @@ def get_selected_features(df):
         features[diff_col] = features[feat].diff().fillna(0)
 
     temp_col = "T (degC)"
-    pressure_col = "p (mbar)"
-    humidity_col = "VPmax (mbar)"
+    humidity_source_col = "rh (%)"
     wind_col = "wv (m/s)"
+    humidity_series = df[humidity_source_col].copy()
 
-    features["T_1h_mean"] = features[temp_col].rolling(window=6, min_periods=1).mean()
     features["T_6h_mean"] = features[temp_col].rolling(window=36, min_periods=1).mean()
     features["T_24h_mean"] = features[temp_col].rolling(window=144, min_periods=1).mean()
-    features["T_6h_std"] = (
-        features[temp_col].rolling(window=36, min_periods=1).std().fillna(0)
-    )
     features["T_24h_std"] = (
         features[temp_col].rolling(window=144, min_periods=1).std().fillna(0)
     )
     features["T_lag_24h"] = features[temp_col].shift(144).bfill()
     features["wv_6h_mean"] = features[wind_col].rolling(window=36, min_periods=1).mean()
-    features["p_6h_diff"] = (
-        features[pressure_col] - features[pressure_col].shift(36)
-    ).fillna(0)
-    features["rh_6h_mean"] = (
-        features[humidity_col].rolling(window=36, min_periods=1).mean()
-    )
+    features["rh_6h_mean"] = humidity_series.rolling(window=36, min_periods=1).mean().values
 
     return features
 

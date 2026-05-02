@@ -145,7 +145,7 @@ def main():
     else:
         # 如果模型文件不存在，则创建新模型
         print(f"警告: 模型文件 {model_path} 不存在，将创建新模型...")
-        model = build_transformer_model((sequence_length, input_feature_count), activation="swish", projection_dim=160, num_heads=8, ff_dim=640, num_transformer_blocks=4, dropout_rate=0.03, patch_size=3)
+        model = build_transformer_model((sequence_length, input_feature_count), activation="swish", projection_dim=128, num_heads=4, ff_dim=512, num_transformer_blocks=3, dropout_rate=0.05, patch_size=4)
         print("模型构建完成。")
         print("模型摘要:")
         model.summary()

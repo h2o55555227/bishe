@@ -34,29 +34,29 @@ def transformer_block(
 def build_transformer_model(
     input_shape,
     activation="swish",
-    projection_dim=160,
-    num_heads=8,
-    ff_dim=640,
-    num_transformer_blocks=4,
-    dropout_rate=0.03,
-    patch_size=3,
+    projection_dim=128,
+    num_heads=4,
+    ff_dim=512,
+    num_transformer_blocks=3,
+    dropout_rate=0.05,
+    patch_size=4,
 ):
     inputs = keras.Input(shape=input_shape)
 
     conv3 = layers.Conv1D(
-        96,
+        80,
         kernel_size=3,
         padding="same",
         activation=activation,
     )(inputs)
     conv5 = layers.Conv1D(
-        96,
+        80,
         kernel_size=5,
         padding="same",
         activation=activation,
     )(inputs)
     conv_dilated = layers.Conv1D(
-        96,
+        80,
         kernel_size=3,
         dilation_rate=3,
         padding="same",
@@ -105,7 +105,7 @@ def build_transformer_model(
     x = layers.Concatenate()([avg_pool, max_pool])
     x = layers.Dropout(dropout_rate)(x)
 
-    x = layers.Dense(96, activation=activation)(x)
+    x = layers.Dense(64, activation=activation)(x)
     x = layers.Dropout(dropout_rate)(x)
 
     outputs = layers.Dense(1)(x)
