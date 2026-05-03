@@ -2,7 +2,6 @@ import csv
 import json
 import os
 from tensorflow import keras
-from tensorflow.keras import backend as K
 
 from data import (
     DATE_TIME_KEY,
@@ -30,8 +29,45 @@ from visualization import (
     visualize_validation_predictions,
 )
 
+# 消融实验模型配置
+MODEL_CONFIGS = {
+    "A": {
+        "name": "原始Transformer",
+        "use_cnn": False,
+        "use_patch_embedding": False,
+        "use_attention_pooling": False,
+    },
+    "B": {
+        "name": "+CNN特征提取",
+        "use_cnn": True,
+        "use_patch_embedding": False,
+        "use_attention_pooling": False,
+    },
+    "C": {
+        "name": "+Patch Embedding",
+        "use_cnn": True,
+        "use_patch_embedding": True,
+        "use_attention_pooling": False,
+    },
+    "D": {
+        "name": "+Attention Pooling",
+        "use_cnn": True,
+        "use_patch_embedding": True,
+        "use_attention_pooling": True,
+    },
+    "E": {
+        "name": "完整模型",
+        "use_cnn": True,
+        "use_patch_embedding": True,
+        "use_attention_pooling": True,
+    },
+}
 
-def save_predictions(true_values, predictions, output_dir=r"E:\毕设\实验\Transformer\results", filename="predictions.csv"):
+# 选择要训练的模型（修改这里来切换 A-E）
+SELECTED_MODEL = "A"
+
+
+def save_predictions(true_values, predictions, output_dir=r"E:\毕设\实验\消融实验\results", filename="predictions.csv"):
     """保存预测结果到 CSV 文件"""
     import csv
     import numpy as np
@@ -51,7 +87,7 @@ def save_predictions(true_values, predictions, output_dir=r"E:\毕设\实验\Tra
     return path
 
 
-def save_metrics(metrics, output_dir=r"E:\毕设\实验\Transformer\results", filename="metrics.json"):
+def save_metrics(metrics, output_dir=r"E:\毕设\实验\消融实验\results", filename="metrics.json"):
     """保存评估指标到 JSON 文件"""
     import json
     
@@ -66,10 +102,12 @@ def save_metrics(metrics, output_dir=r"E:\毕设\实验\Transformer\results", fi
 
 
 def main():
-    # 定义结果保存目录
-    RESULTS_DIR = r"E:\毕设\实验\Transformer\results"
+    # 定义结果保存目录，按模型编号区分
+    RESULTS_DIR = rf"E:\毕设\实验\消融实验\results\model_{SELECTED_MODEL}"
     
-    print("=== Transformer 时间序列预测项目 ===")
+    model_config = MODEL_CONFIGS[SELECTED_MODEL]
+    print(f"=== 消融实验 - 模型 {SELECTED_MODEL}: {model_config['name']} ===")
+    
     print("[1/8] 开始下载并加载数据...")
     df = download_and_load_data(data_dir=".")
     print(f"数据加载完成。数据集形状: {df.shape}")
@@ -84,24 +122,11 @@ def main():
     print(f"特征选择完成。特征数据形状: {raw_features.shape}")
     print()
 
-    # print("[2.1/8] 显示并保存原始数据可视化...")
-    # show_raw_visualization(df, selected_features, selected_titles, colors, output_dir=RESULTS_DIR)
-    # print()
-
     train_split = int(0.715 * int(df.shape[0]))
     print(f"[3/8] 开始归一化处理和切分数据集... (训练集大小: {train_split})")
     normalized_features, train_mean, train_std = normalize_features(raw_features, train_split)
     print("归一化完成。")
-    print(f"归一化参数 - 均值: {train_mean[:3]}..., 标准差: {train_std[:3]}...")
     print()
-
-    # print("[3.1/8] 显示归一化后数据可视化...")
-    # show_processed_visualization(normalized_features, selected_titles, colors, output_dir=RESULTS_DIR)
-    # print()
-
-    # print("[3.2/8] 显示原始数据与归一化数据对比...")
-    # show_comparison_visualization(raw_features, normalized_features, selected_features, selected_titles, colors, output_dir=RESULTS_DIR)
-    # print()
 
     train_data, val_data = split_features(normalized_features, train_split)
     dataset_train, dataset_val, sequence_length = build_timeseries_datasets(
@@ -119,40 +144,23 @@ def main():
     print(f"验证数据集大小: {len(dataset_val)} 批次")
     print()
 
-    print("[5/8] 开始加载模型...")
-    # 指定模型路径
-    model_path = r"E:\毕设\实验\results\Transformer+GELU\transformer_model.keras"
-    
-    # 检查在不同操作系统下的路径
-    if not os.path.exists(model_path):
-        # 尝试在Colab/Linux环境下的路径
-        colab_model_path = os.path.join(RESULTS_DIR, "transformer_model.keras")
-        if os.path.exists(colab_model_path):
-            model_path = colab_model_path
-        else:
-            # 如果都不存在，尝试使用h5格式
-            model_path_h5 = os.path.join(RESULTS_DIR, "transformer_model.h5")
-            if os.path.exists(model_path_h5):
-                model_path = model_path_h5
-    
-    if os.path.exists(model_path):
-        # 启用不安全的反序列化以加载包含Lambda层的旧模型
-        keras.config.enable_unsafe_deserialization()
-        # 将K注入到全局作用域供Lambda层使用
-        import builtins
-        builtins.__dict__['K'] = K
-        # 加载模型
-        model = keras.models.load_model(model_path)
-        print(f"模型加载完成: {model_path}")
-        print("模型摘要:")
-        model.summary()
-    else:
-        # 如果模型文件不存在，则创建新模型
-        print(f"警告: 模型文件 {model_path} 不存在，将创建新模型...")
-        model = build_transformer_model((sequence_length, input_feature_count), activation="relu", projection_dim=128, num_heads=8, ff_dim=256, num_transformer_blocks=3)
-        print("模型构建完成。")
-        print("模型摘要:")
-        model.summary()
+    print(f"[5/8] 开始构建模型 {SELECTED_MODEL}: {model_config['name']}...")
+    model = build_transformer_model(
+        (sequence_length, input_feature_count),
+        activation="swish",
+        projection_dim=128,
+        num_heads=4,
+        ff_dim=512,
+        num_transformer_blocks=3,
+        dropout_rate=0.05,
+        patch_size=4,
+        use_cnn=model_config["use_cnn"],
+        use_patch_embedding=model_config["use_patch_embedding"],
+        use_attention_pooling=model_config["use_attention_pooling"],
+    )
+    print("模型构建完成。")
+    print("模型摘要:")
+    model.summary()
     print()
 
     print("[7/8] 预测样例并可视化...")
@@ -182,8 +190,16 @@ def main():
     save_predictions(all_true_values, all_predictions, output_dir=RESULTS_DIR)
     save_metrics(metrics, output_dir=RESULTS_DIR)
     
+    # 保存模型配置
+    with open(os.path.join(RESULTS_DIR, "model_config.json"), "w", encoding="utf-8") as f:
+        json.dump({
+            "model_id": SELECTED_MODEL,
+            "model_name": model_config["name"],
+            "config": model_config,
+        }, f, indent=4, ensure_ascii=False)
     
-    print("所有结果已保存。执行完成！")
+    print(f"所有结果已保存至: {RESULTS_DIR}")
+    print("执行完成！")
 
 
 if __name__ == "__main__":

@@ -7,14 +7,14 @@ plt.rcParams['font.sans-serif'] = ['SimHei', 'DejaVu Sans', 'Arial Unicode MS']
 plt.rcParams['axes.unicode_minus'] = False
 
 # 确保输出目录存在
-output_dir = r"E:\毕设\实验\Transformer\results"
+output_dir = r"E:\毕设\实验\CNN+Transformer\results"
 os.makedirs(output_dir, exist_ok=True)
 
 
 def draw_transformer_architecture():
-    fig, ax = plt.subplots(figsize=(24, 40), dpi=100)
+    fig, ax = plt.subplots(figsize=(24, 42), dpi=100)
     ax.set_xlim(0, 24)
-    ax.set_ylim(0, 40)
+    ax.set_ylim(0, 42)
     ax.axis('off')
     
     # 颜色定义
@@ -23,55 +23,65 @@ def draw_transformer_architecture():
         'conv': '#2196F3',
         'patch': '#FF9800',
         'transformer': '#9C27B0',
-        'attention': '#F44336',
+        'pool': '#F44336',
         'output': '#00BCD4',
     }
 
     
     # ========== 输入层 ==========
-    y = 35.5
-    draw_box(ax, 4, y, 16, 2.5, '输入层', colors['input'], 
+    y = 39.0
+    draw_box(ax, 4, y, 16, 2.3, '输入层', colors['input'], 
              '输入形状: (sequence_length, features)')
     
-    # ========== CNN局部特征提取 ==========
-    y = 31.0
-    draw_box(ax, 4, y, 7.5, 2.2, 'Conv1D Layer 1', colors['conv'], 
-             '过滤器: 128  卷积核: 3  激活函数: gelu  padding: same')
-    draw_box(ax, 12.5, y, 7.5, 2.2, 'Conv1D Layer 2', colors['conv'], 
-             '过滤器: 128  卷积核: 3  激活函数: gelu  padding: same')
+    # ========== CNN多尺度局部特征提取（并行） ==========
+    y = 35.5
+    draw_box(ax, 3, y, 5.5, 2.5, 'Conv1D (核3)', colors['conv'], 
+             '过滤器: 80  卷积核: 3  激活: swish  padding: same')
+    draw_box(ax, 9.2, y, 5.6, 2.5, 'Conv1D (核5)', colors['conv'], 
+             '过滤器: 80  卷积核: 5  激活: swish  padding: same')
+    draw_box(ax, 15.2, y, 5.5, 2.5, 'Conv1D (扩张3)', colors['conv'], 
+             '过滤器: 80  卷积核: 3  扩张率: 3  激活: swish  padding: same')
     
-    # ========== Patch Embedding ==========
-    y = 26.5
-    draw_box(ax, 4, y, 16, 2.5, 'Patch Embedding', colors['patch'], 
-             'Patch大小: 12  Reshape → Dense(128) → Dropout(0.1)  将时间序列分割成patch并嵌入')
+    # ========== Concat + Conv1D(1x1) + LayerNorm ==========
+    y = 31.5
+    draw_box(ax, 4, y, 16, 2.8, '特征融合', colors['conv'], 
+             'Concat → Conv1D(128, 核1) → LayerNorm(epsilon=1e-6) → Dropout(0.05)')
+    
+    # ========== Patch Embedding + Position Embedding ==========
+    y = 27.7
+    draw_box(ax, 4, y, 16, 2.2, 'Patch Embedding', colors['patch'], 
+             'Patch大小: 4  Reshape → Dense(128) + Position Embedding → Dropout(0.05)')
     
     # ========== Transformer Encoder ==========
-    y_base = 22.0
-    block_height = 3.5
-    spacing = 1.0
+    y_base = 23.7
+    block_height = 3.0
+    spacing = 0.7
     
     for i in range(3):
         y = y_base - i * (block_height + spacing)
         draw_transformer_block(ax, 4, y, 16, block_height, f'Transformer Block {i+1}', colors)
     
-    # ========== Attention Pooling ==========
-    y = 7.0
-    draw_box(ax, 4, y, 16, 4.8, 'Attention Pooling', colors['attention'], 
-             '步骤:\n1. Dense(1) + Softmax → 学习注意力权重\n2. Multiply → 对每个patch加权\n3. Sum(axis=1) → 加权求和\n替代: 简单取最后时间步')
+    # ========== Pooling (Avg + Max) ==========
+    y = 13.5
+    draw_box(ax, 4, y, 16, 2.2, '池化层', colors['pool'], 
+             'GlobalAvgPooling1D + GlobalMaxPooling1D → Concat → Dropout(0.05)')
     
     # ========== 输出层 ==========
-    y = 3.0
-    draw_box(ax, 4, y, 16, 2.5, '输出层', colors['output'], 
-             'Dropout(0.1) → Dense(1)\n回归预测任务')
+    y = 10.0
+    draw_box(ax, 4, y, 16, 2.3, '输出层', colors['output'], 
+             'Dense(64, swish) → Dropout(0.05) → Dense(1)\n回归预测任务')
     
     # 连接箭头
-    draw_vertical_arrow(ax, 12, 35.5, 33.2)  # Input底部 -> Conv1顶部
-    draw_vertical_arrow(ax, 12, 31.0, 29.0)  # Conv底部 -> Patch顶部
-    draw_vertical_arrow(ax, 12, 26.5, 25.5)  # Patch底部 -> Block1顶部
-    draw_vertical_arrow(ax, 12, 22.0, 21.0)  # Block1底部 -> Block2顶部
-    draw_vertical_arrow(ax, 12, 17.5, 16.5)  # Block2底部 -> Block3顶部
-    draw_vertical_arrow(ax, 12, 13.0, 11.8)  # Block3底部 -> Attention顶部
-    draw_vertical_arrow(ax, 12, 7.0, 5.5)   # Attention底部 -> 输出层顶部
+    draw_vertical_arrow(ax, 12, 39.0, 38.2)  # Input底部 -> Conv顶部
+    draw_vertical_arrow(ax, 5.75, 35.5, 34.3)  # Conv1底部 -> Concat顶部
+    draw_vertical_arrow(ax, 12, 35.5, 34.3)  # Conv2底部 -> Concat顶部
+    draw_vertical_arrow(ax, 18.25, 35.5, 34.3)  # Conv3底部 -> Concat顶部
+    draw_vertical_arrow(ax, 12, 31.5, 30.2)  # Concat底部 -> Patch顶部
+    draw_vertical_arrow(ax, 12, 27.7, 26.7)  # Patch底部 -> Block1顶部
+    draw_vertical_arrow(ax, 12, 23.7, 22.7)  # Block1底部 -> Block2顶部
+    draw_vertical_arrow(ax, 12, 20.0, 19.0)  # Block2底部 -> Block3顶部
+    draw_vertical_arrow(ax, 12, 16.3, 15.8)  # Block3底部 -> Pool顶部
+    draw_vertical_arrow(ax, 12, 13.5, 12.5)  # Pool底部 -> 输出层顶部
     
     # 图例
     legend_elements = [
@@ -79,14 +89,14 @@ def draw_transformer_architecture():
         mpatches.Patch(color=colors['conv'], label='CNN层'),
         mpatches.Patch(color=colors['patch'], label='Patch Embedding'),
         mpatches.Patch(color=colors['transformer'], label='Transformer Block'),
-        mpatches.Patch(color=colors['attention'], label='Attention Pooling'),
+        mpatches.Patch(color=colors['pool'], label='池化层'),
         mpatches.Patch(color=colors['output'], label='输出层'),
     ]
     ax.legend(handles=legend_elements, loc='lower center', 
-              bbox_to_anchor=(0.5, 0.02), ncol=6, fontsize=11)
+              bbox_to_anchor=(0.5, 0.02), ncol=6, fontsize=18)
     
     plt.tight_layout()
-    save_path = os.path.join(output_dir, 'transformer_architecture_diagram.png')
+    save_path = os.path.join(output_dir, 'cnn_transformer_architecture_diagram.png')
     plt.savefig(save_path, dpi=150, bbox_inches='tight')
     print(f"模型架构图已保存至: {save_path}")
     plt.show()
@@ -103,11 +113,11 @@ def draw_box(ax, x, y, width, height, title, color, description):
     
     # 标题
     ax.text(x + width/2, y + height - 0.4, title, 
-            ha='center', va='center', fontsize=10, fontweight='bold', color='white')
+            ha='center', va='center', fontsize=18, fontweight='bold', color='white')
     
     # 描述
     ax.text(x + width/2, y + height - 1.1, description, 
-            ha='center', va='top', fontsize=8, color='white', linespacing=2.0)
+            ha='center', va='top', fontsize=15, color='white', linespacing=2.0)
 
 
 def draw_transformer_block(ax, x, y, width, height, title, colors):
@@ -121,7 +131,7 @@ def draw_transformer_block(ax, x, y, width, height, title, colors):
     
     # 标题
     ax.text(x + width/2, y + height - 0.3, title, 
-            ha='center', va='top', fontsize=9, fontweight='bold', color=colors['transformer'])
+            ha='center', va='top', fontsize=17, fontweight='bold', color=colors['transformer'])
     
     # 内部结构
     sub_x = x + 1.0
@@ -131,11 +141,11 @@ def draw_transformer_block(ax, x, y, width, height, title, colors):
     
     # 多头注意力
     draw_sub_box(ax, sub_x, sub_y, sub_width, sub_height, 
-                '多头自注意力  num_heads=8  key_dim=128\nLayerNorm + 残差连接', colors['transformer'])
+                '多头自注意力  num_heads=4  key_dim=32\nLayerNorm + 残差连接\nDropout=0.05', colors['transformer'])
     
     # 前馈网络
     draw_sub_box(ax, sub_x + sub_width + 1.0, sub_y, sub_width, sub_height, 
-                '前馈网络  FFN: 256 → 128  激活: gelu\nLayerNorm + 残差连接', colors['transformer'])
+                '前馈网络  FFN: 512 → 128  激活: swish\nLayerNorm + 残差连接\nDropout=0.05', colors['transformer'])
 
 
 def draw_sub_box(ax, x, y, width, height, title, color):
@@ -146,7 +156,7 @@ def draw_sub_box(ax, x, y, width, height, title, color):
     )
     ax.add_patch(rect)
     ax.text(x + width/2, y + height/2, title, 
-            ha='center', va='center', fontsize=9, color=color, linespacing=1.8)
+            ha='center', va='center', fontsize=16, color=color, linespacing=1.8)
 
 
 def draw_vertical_arrow(ax, x, y1, y2):

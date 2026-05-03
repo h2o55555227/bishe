@@ -1,65 +1,134 @@
+import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from tensorflow.keras import backend as K
 
 
 def transformer_block(
-    x, num_heads, key_dim, ff_dim, projection_dim, activation, dropout_rate
+    x,
+    num_heads,
+    projection_dim,
+    ff_dim,
+    activation="swish",
+    dropout_rate=0.05,
 ):
-    attn_output = layers.MultiHeadAttention(
+    head_dim = projection_dim // num_heads
+
+    attn = layers.MultiHeadAttention(
         num_heads=num_heads,
-        key_dim=key_dim,
+        key_dim=head_dim,
         dropout=dropout_rate,
     )(x, x)
-    attn_output = layers.Dropout(dropout_rate)(attn_output)
-    x = layers.LayerNormalization()(x + attn_output)
+
+    attn = layers.Dropout(dropout_rate)(attn)
+    x = layers.LayerNormalization(epsilon=1e-6)(x + attn)
 
     ff = layers.Dense(ff_dim, activation=activation)(x)
     ff = layers.Dropout(dropout_rate)(ff)
     ff = layers.Dense(projection_dim)(ff)
     ff = layers.Dropout(dropout_rate)(ff)
-    return layers.LayerNormalization()(x + ff)
+
+    x = layers.LayerNormalization(epsilon=1e-6)(x + ff)
+    return x
 
 
 def build_transformer_model(
     input_shape,
-    activation="relu",
+    activation="swish",
     projection_dim=128,
-    num_heads=8,
-    ff_dim=256,
+    num_heads=4,
+    ff_dim=512,
     num_transformer_blocks=3,
-    dropout_rate=0.1,
-    patch_size=12,
+    dropout_rate=0.05,
+    patch_size=4,
+    use_cnn=False,
+    use_patch_embedding=False,
+    use_attention_pooling=False,
 ):
     inputs = keras.Input(shape=input_shape)
-    
-    # Patch Embedding（移除了CNN层）
-    sequence_length, num_features = input_shape
-    num_patches = sequence_length // patch_size
-    
-    # Reshape: (batch, sequence_length, features) -> (batch, num_patches, patch_size * features)
-    x = layers.Reshape((num_patches, patch_size * num_features))(inputs)
-    
-    # Map to embedding dimension
-    x = layers.Dense(projection_dim)(x)
-    x = layers.Dropout(dropout_rate)(x)
+    x = inputs
+
+    if use_cnn:
+        conv3 = layers.Conv1D(
+            80,
+            kernel_size=3,
+            padding="same",
+            activation=activation,
+        )(x)
+        conv5 = layers.Conv1D(
+            80,
+            kernel_size=5,
+            padding="same",
+            activation=activation,
+        )(x)
+        conv_dilated = layers.Conv1D(
+            80,
+            kernel_size=3,
+            dilation_rate=3,
+            padding="same",
+            activation=activation,
+        )(x)
+
+        x = layers.Concatenate()([conv3, conv5, conv_dilated])
+        x = layers.Conv1D(
+            projection_dim,
+            kernel_size=1,
+            padding="same",
+            activation=activation,
+        )(x)
+        x = layers.LayerNormalization(epsilon=1e-6)(x)
+        x = layers.Dropout(dropout_rate)(x)
+    else:
+        x = layers.Dense(projection_dim)(x)
+        x = layers.Dropout(dropout_rate)(x)
+
+    seq_len = input_shape[0]
+
+    if use_patch_embedding:
+        num_patches = seq_len // patch_size
+        trimmed_seq_len = num_patches * patch_size
+        if trimmed_seq_len != seq_len:
+            x = layers.Cropping1D(cropping=(0, seq_len - trimmed_seq_len))(x)
+
+        x = layers.Reshape((num_patches, patch_size * projection_dim))(x)
+        x = layers.Dense(projection_dim)(x)
+
+        positions = tf.range(start=0, limit=num_patches, delta=1)
+        pos_embedding = layers.Embedding(
+            input_dim=num_patches,
+            output_dim=projection_dim,
+        )(positions)
+        x = x + pos_embedding[tf.newaxis, ...]
+        x = layers.Dropout(dropout_rate)(x)
+    else:
+        positions = tf.range(start=0, limit=seq_len, delta=1)
+        pos_embedding = layers.Embedding(
+            input_dim=seq_len,
+            output_dim=projection_dim,
+        )(positions)
+        x = x + pos_embedding[tf.newaxis, ...]
+        x = layers.Dropout(dropout_rate)(x)
 
     for _ in range(num_transformer_blocks):
         x = transformer_block(
             x,
             num_heads=num_heads,
-            key_dim=projection_dim,
-            ff_dim=ff_dim,
             projection_dim=projection_dim,
+            ff_dim=ff_dim,
             activation=activation,
             dropout_rate=dropout_rate,
         )
 
-    weights = layers.Dense(1)(x)
-    weights = layers.Softmax(axis=1)(weights)
-    x = layers.Multiply()([x, weights])
-    x = layers.Lambda(lambda x: K.sum(x, axis=1), output_shape=(projection_dim,))(x)
-    x = layers.Dropout(dropout_rate)(x)
-    outputs = layers.Dense(1)(x)
+    if use_attention_pooling:
+        avg_pool = layers.GlobalAveragePooling1D()(x)
+        max_pool = layers.GlobalMaxPooling1D()(x)
+        x = layers.Concatenate()([avg_pool, max_pool])
+        x = layers.Dropout(dropout_rate)(x)
 
+        x = layers.Dense(64, activation=activation)(x)
+        x = layers.Dropout(dropout_rate)(x)
+    else:
+        x = layers.GlobalAveragePooling1D()(x)
+        x = layers.Dropout(dropout_rate)(x)
+
+    outputs = layers.Dense(1)(x)
     return keras.Model(inputs, outputs)

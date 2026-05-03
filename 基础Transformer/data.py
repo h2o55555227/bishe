@@ -31,13 +31,13 @@ feature_keys = [
 titles = [
     "气压",
     "温度",
-    "开尔文温度",
+    "位温",
     "露点温度",
     "相对湿度",
     "饱和水汽压",
-    "水汽压",
+    "实际水汽压",
     "水汽压亏缺",
-    "比湿度",
+    "比湿",
     "水汽浓度",
     "密度",
     "风速",
@@ -50,6 +50,14 @@ selected_features = [feature_keys[i] for i in selected_feature_indices]
 selected_titles = [titles[i] for i in selected_feature_indices]
 time_feature_names = ["hour_sin", "hour_cos", "day_sin", "day_cos"]
 diff_feature_names = [f"{feat}_diff" for feat in selected_features]
+rolling_feature_names = [
+    "T_6h_mean",
+    "T_24h_mean",
+    "T_24h_std",
+    "T_lag_24h",
+    "wv_6h_mean",
+    "rh_6h_mean",
+]
 colors = [
     "blue",
     "orange",
@@ -82,52 +90,52 @@ def download_and_load_data(data_dir="."):
 
 def get_selected_features(df):
     features = df[selected_features].copy()
-    
-    # 更安全的时间解析
+
     try:
         date_time = pd.to_datetime(
             df[DATE_TIME_KEY], format="%d.%m.%Y %H:%M:%S", errors="coerce"
         )
-        
-        # 检查是否有 NaT 值
+
         if date_time.isna().any():
-            print(f"警告：发现 {date_time.isna().sum()} 个无效的时间戳，使用前向填充处理")
-            date_time = date_time.ffill()
-            date_time = date_time.bfill()
-        
-        # 计算时间特征（不修改features的index，避免索引对齐问题）
-        hour = date_time.dt.hour + date_time.dt.minute / 60.0
-        day_of_year = date_time.dt.dayofyear - 1
+            print(
+                f"Warning: found {date_time.isna().sum()} invalid timestamps, filling them."
+            )
+            date_time = date_time.ffill().bfill()
 
-        # 检查并填充 NaN
-        hour = hour.fillna(0)
-        day_of_year = day_of_year.fillna(0)
+        hour = (date_time.dt.hour + date_time.dt.minute / 60.0).fillna(0)
+        day_of_year = (date_time.dt.dayofyear - 1).fillna(0)
 
-        # 直接使用 .values 赋值，避免索引对齐问题
         features["hour_sin"] = np.sin(2 * np.pi * hour.values / 24.0)
         features["hour_cos"] = np.cos(2 * np.pi * hour.values / 24.0)
         features["day_sin"] = np.sin(2 * np.pi * day_of_year.values / 365.0)
         features["day_cos"] = np.cos(2 * np.pi * day_of_year.values / 365.0)
-        
-        # 最后才设置索引
         features.index = date_time
-        
-    except Exception as e:
-        print(f"警告：时间处理失败: {e}，使用默认值")
-        # 如果时间处理失败，使用索引作为伪时间
+    except Exception as exc:
+        print(f"Warning: time parsing failed ({exc}), using fallback time features.")
         fake_hour = np.arange(len(df)) % 24
         fake_day = np.arange(len(df)) % 365
         features["hour_sin"] = np.sin(2 * np.pi * fake_hour / 24.0)
         features["hour_cos"] = np.cos(2 * np.pi * fake_hour / 24.0)
         features["day_sin"] = np.sin(2 * np.pi * fake_day / 365.0)
         features["day_cos"] = np.cos(2 * np.pi * fake_day / 365.0)
-    
-    # 添加差分特征
+
     for feat in selected_features:
         diff_col = f"{feat}_diff"
-        features[diff_col] = features[feat].diff()
-        # 填充第一个NaN值为0
-        features[diff_col] = features[diff_col].fillna(0)
+        features[diff_col] = features[feat].diff().fillna(0)
+
+    temp_col = "T (degC)"
+    humidity_source_col = "rh (%)"
+    wind_col = "wv (m/s)"
+    humidity_series = df[humidity_source_col].copy()
+
+    features["T_6h_mean"] = features[temp_col].rolling(window=36, min_periods=1).mean()
+    features["T_24h_mean"] = features[temp_col].rolling(window=144, min_periods=1).mean()
+    features["T_24h_std"] = (
+        features[temp_col].rolling(window=144, min_periods=1).std().fillna(0)
+    )
+    features["T_lag_24h"] = features[temp_col].shift(144).bfill()
+    features["wv_6h_mean"] = features[wind_col].rolling(window=36, min_periods=1).mean()
+    features["rh_6h_mean"] = humidity_series.rolling(window=36, min_periods=1).mean().values
 
     return features
 
@@ -137,16 +145,10 @@ def normalize_features(features, train_split):
 
     mean = training_slice.mean(axis=0)
     std = training_slice.std(axis=0)
-
-    # ✅ 防止除0（关键！！！）
-    std = std.replace(0, 1e-6)
-    std = std.fillna(1e-6)
+    std = std.replace(0, 1e-6).fillna(1e-6)
 
     normalized = (features - mean) / std
-
-    # ✅ 再保险（防 NaN / Inf）
-    normalized = normalized.replace([np.inf, -np.inf], 0)
-    normalized = normalized.fillna(0)
+    normalized = normalized.replace([np.inf, -np.inf], 0).fillna(0)
 
     return normalized, mean, std
 

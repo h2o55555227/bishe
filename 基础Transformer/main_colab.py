@@ -13,6 +13,7 @@ from data import (
     download_and_load_data,
     get_selected_features,
     normalize_features,
+    rolling_feature_names,
     selected_features,
     time_feature_names,
     diff_feature_names,
@@ -30,6 +31,43 @@ DATA_DIR = Path("/content/data")
 RUN_NAME = datetime.now().strftime("run_%Y%m%d_%H%M%S")
 RESULTS_DIR = DRIVE_ROOT / PROJECT_NAME / "results" / RUN_NAME
 
+# 消融实验模型配置
+MODEL_CONFIGS = {
+    "A": {
+        "name": "原始Transformer",
+        "use_cnn": False,
+        "use_patch_embedding": False,
+        "use_attention_pooling": False,
+    },
+    "B": {
+        "name": "+CNN特征提取",
+        "use_cnn": True,
+        "use_patch_embedding": False,
+        "use_attention_pooling": False,
+    },
+    "C": {
+        "name": "+Patch Embedding",
+        "use_cnn": True,
+        "use_patch_embedding": True,
+        "use_attention_pooling": False,
+    },
+    "D": {
+        "name": "+Attention Pooling",
+        "use_cnn": True,
+        "use_patch_embedding": True,
+        "use_attention_pooling": True,
+    },
+    "E": {
+        "name": "完整模型",
+        "use_cnn": True,
+        "use_patch_embedding": True,
+        "use_attention_pooling": True,
+    },
+}
+
+# 选择要训练的模型（修改这里来切换 A-E）
+SELECTED_MODEL = "A"
+
 CONFIG = {
     "train_ratio": 0.715,
     "past": 720,
@@ -37,17 +75,26 @@ CONFIG = {
     "step": 6,
     "batch_size": 256,
     "epochs": 50,
-    "learning_rate": 0.0001,
-    "loss": "mse",
-    "activation": "relu",
+    "learning_rate": 0.00005,
+    "loss": "huber",
+    "activation": "swish",
     "projection_dim": 128,
-    "num_heads": 8,
-    "ff_dim": 256,
+    "num_heads": 4,
+    "ff_dim": 512,
     "num_transformer_blocks": 3,
-    "dropout_rate": 0.1,
-    "early_stopping_patience": 8,
+    "dropout_rate": 0.05,
+    "early_stopping_patience": 4,
+    "use_lr_scheduler": True,
+    "warmup_epochs": 3,
+    "patch_size": 4,
+    "finetune_mse_epochs": 0,
+    "finetune_learning_rate": 0.00002,
+    "finetune_patience": 5,
     "checkpoint_name": "best_model.weights.h5",
     "full_model_name": "transformer_model.keras",
+    "selected_model": SELECTED_MODEL,
+    "model_name": MODEL_CONFIGS[SELECTED_MODEL]["name"],
+    **MODEL_CONFIGS[SELECTED_MODEL],
 }
 
 
@@ -226,6 +273,7 @@ def main():
     print(f"Feature shape: {raw_features.shape}")
     print(f"Added time features: {time_feature_names}")
     print(f"Added diff features: {diff_feature_names}")
+    print(f"Added rolling features: {rolling_feature_names}")
 
     train_split = int(CONFIG["train_ratio"] * len(df))
     print("[3/7] Normalizing and splitting data...")
@@ -248,7 +296,7 @@ def main():
     print(f"Train batches: {dataset_batches(dataset_train)}")
     print(f"Validation batches: {dataset_batches(dataset_val)}")
 
-    print("[5/7] Building model...")
+    print(f"[5/7] Building model: {CONFIG['model_name']} (Model {CONFIG['selected_model']})...")
     model = build_transformer_model(
         (sequence_length, input_feature_count),
         activation=CONFIG["activation"],
@@ -257,6 +305,10 @@ def main():
         ff_dim=CONFIG["ff_dim"],
         num_transformer_blocks=CONFIG["num_transformer_blocks"],
         dropout_rate=CONFIG["dropout_rate"],
+        patch_size=CONFIG["patch_size"],
+        use_cnn=CONFIG["use_cnn"],
+        use_patch_embedding=CONFIG["use_patch_embedding"],
+        use_attention_pooling=CONFIG["use_attention_pooling"],
     )
     save_model_summary(model, RESULTS_DIR / "model_summary.txt")
 
@@ -271,6 +323,11 @@ def main():
         learning_rate=CONFIG["learning_rate"],
         early_stopping_patience=CONFIG["early_stopping_patience"],
         loss=CONFIG["loss"],
+        use_lr_scheduler=CONFIG["use_lr_scheduler"],
+        warmup_epochs=CONFIG["warmup_epochs"],
+        finetune_mse_epochs=CONFIG["finetune_mse_epochs"],
+        finetune_learning_rate=CONFIG["finetune_learning_rate"],
+        finetune_patience=CONFIG["finetune_patience"],
     )
     save_loss_plot(history, RESULTS_DIR / "loss_curve.png")
 
@@ -290,6 +347,7 @@ def main():
             "sequence_length": sequence_length,
             "selected_features": selected_features,
             "time_features": time_feature_names,
+            "rolling_features": rolling_feature_names,
             "input_feature_count": input_feature_count,
             "model_input_features": list(raw_features.columns),
         },
