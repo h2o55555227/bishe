@@ -64,7 +64,7 @@ MODEL_CONFIGS = {
 }
 
 # 选择要训练的模型（修改这里来切换 A-E）
-SELECTED_MODEL = "A"
+SELECTED_MODEL = "B"
 
 
 def save_predictions(true_values, predictions, output_dir=r"E:\毕设\实验\消融实验\results", filename="predictions.csv"):

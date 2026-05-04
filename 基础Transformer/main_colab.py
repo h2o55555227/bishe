@@ -66,7 +66,7 @@ MODEL_CONFIGS = {
 }
 
 # 选择要训练的模型（修改这里来切换 A-E）
-SELECTED_MODEL = "A"
+SELECTED_MODEL = "B"
 
 CONFIG = {
     "train_ratio": 0.715,
